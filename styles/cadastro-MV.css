@@ -2,10 +2,13 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Arial', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
-body{
-    background-color: #f9f9f9;
+
+body {
+    background-color: #f8fafc;
+    color: #334155;
+    line-height: 1.5;
 }
 nav {
     display: flex;
@@ -58,18 +61,20 @@ nav {
     margin: 5px;
     transition: all 0.3s ease;
 }
-.container{
-    width: device-width;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    background-color: #f9f9f9;
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
 }
-.form-cadastro-MV{
-    width: 70%;
-    font-size: 1em;
-    border: 
+
+.form-cadastro-MV {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    padding: 2rem;
 }
 #senha{
     width: 40%;
@@ -78,41 +83,109 @@ nav {
 
 label {
     display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #1e293b;
 }
-#conf-senha {
-    width: 40%;
+
+.form-group {
+    margin-bottom: 1.5rem;
 }
-#CRMV{
-    width: 40%;
-}
-#state{
-    font-size: 1em;
-    padding: 10px;
-    margin: 10px 0;
-    border: 1px solid #ccc;
-    border-radius: 5px; 
-}
-.form-cadastro-MV input{
+
+.form-cadastro-MV input,
+.form-cadastro-MV select,
+.form-cadastro-MV textarea {
     width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    border: 1px solid #ccc;
-    border-radius: 5px;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background-color: #fff;
+    color: #1e293b;
+    font-size: 1rem;
+    transition: all 0.2s;
 }
-.form-cadastro-MV h1{
+
+.form-cadastro-MV input:focus,
+.form-cadastro-MV select:focus,
+.form-cadastro-MV textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-cadastro-MV h1 {
     text-align: center;
-    margin-bottom: 40px;
+    margin-bottom: 2rem;
+    color: #1e293b;
+    font-size: 1.875rem;
+    font-weight: 600;
 }
-.form-cadastro-MV button{
+
+.form-cadastro-MV button {
     width: 100%;
-    padding: 10px;
-    background-color: #058d22;
+    padding: 0.875rem 1.5rem;
+    background-color: #0284c7;
     color: white;
     border: none;
-    border-radius: 5px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 1rem;
     cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.form-cadastro-MV button:hover {
+    background-color: #0369a1;
+}
+
+.form-cadastro-MV button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.4);
+}
+
+.checkbox-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.checkbox-item input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+.file-upload {
+    text-align: center;
+    padding: 2rem;
+    border: 2px dashed #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.file-preview {
+    margin-bottom: 1rem;
+    font-size: 3rem;
+    color: #94a3b8;
+}
+
+.file-label {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background-color: #f1f5f9;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.file-label:hover {
+    background-color: #e2e8f0;
 }
 
 

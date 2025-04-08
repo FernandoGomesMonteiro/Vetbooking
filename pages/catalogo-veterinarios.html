@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo de Veterinários - VetBooking</title>
+    <link rel="stylesheet" href="../styles/catalogo-veterinarios.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header/Navbar -->
+    <nav>
+        <a href="../index.html" class="logo">
+            <img src="../img/WhatsApp Image 2024-09-26 at 13.36.23 (1).jpeg" alt="VetBooking Logo">
+        </a>
+        <div class="nav-links">
+            <a href="../index.html">Página Inicial</a>
+            <a href="#" class="active">Veterinários</a>
+            <a href="#">Clínicas</a>
+            <a href="#">Como Funciona</a>
+        </div>
+        <div class="burger">
+            <div class="line1"></div>
+            <div class="line2"></div>
+            <div class="line3"></div>
+        </div>
+    </nav>
+
+    <!-- Conteúdo Principal -->
+    <div class="main-container">
+        <!-- Seção de Filtros -->
+        <div class="filter-section">
+            <h2>Filtros</h2>
+            <div class="filter-group">
+                <label for="especialidade">Especialidade</label>
+                <select id="especialidade" name="especialidade">
+                    <option value="">Todas as especialidades</option>
+                    <option value="clinica-geral">Clínica Geral</option>
+                    <option value="dermatologia">Dermatologia</option>
+                    <option value="cardiologia">Cardiologia</option>
+                    <option value="ortopedia">Ortopedia</option>
+                    <option value="oftalmologia">Oftalmologia</option>
+                    <option value="oncologia">Oncologia</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="localizacao">Localização</label>
+                <select id="localizacao" name="localizacao">
+                    <option value="">Todas as regiões</option>
+                    <option value="curitiba">Curitiba</option>
+                    <option value="sao-jose-dos-pinhais">São José dos Pinhais</option>
+                    <option value="pinhais">Pinhais</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="avaliacao">Avaliação mínima</label>
+                <div class="rating-filter">
+                    <input type="radio" id="star5" name="avaliacao" value="5">
+                    <label for="star5"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></label>
+                    
+                    <input type="radio" id="star4" name="avaliacao" value="4">
+                    <label for="star4"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></label>
+                    
+                    <input type="radio" id="star3" name="avaliacao" value="3" checked>
+                    <label for="star3"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></label>
+                    
+                    <input type="radio" id="star2" name="avaliacao" value="2">
+                    <label for="star2"><i class="fas fa-star"></i><i class="fas fa-star"></i></label>
+                    
+                    <input type="radio" id="star1" name="avaliacao" value="1">
+                    <label for="star1"><i class="fas fa-star"></i></label>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label for="disponibilidade">Disponibilidade</label>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="hoje" name="disponibilidade" value="hoje">
+                    <label for="hoje">Hoje</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="amanha" name="disponibilidade" value="amanha">
+                    <label for="amanha">Amanhã</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="esta-semana" name="disponibilidade" value="esta-semana">
+                    <label for="esta-semana">Esta semana</label>
+                </div>
+            </div>
+
+            <button class="btn-aplicar-filtros">Aplicar Filtros</button>
+        </div>
+
+        <!-- Catálogo de Veterinários -->
+        <div class="catalog-section">
+            <div class="catalog-header">
+                <h1>Veterinários Disponíveis</h1>
+                <div class="sort-options">
+                    <label for="ordenar">Ordenar por:</label>
+                    <select id="ordenar" name="ordenar">
+                        <option value="relevancia">Relevância</option>
+                        <option value="avaliacao">Melhor avaliação</option>
+                        <option value="preco-menor">Menor preço</option>
+                        <option value="preco-maior">Maior preço</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="vet-cards">
+                <!-- Card 1 -->
+                <div class="vet-card">
+                    <div class="vet-image">
+                        <img src="https://randomuser.me/api/portraits/women/65.jpg" alt="Dra. Ana Silva">
+                    </div>
+                    <div class="vet-info">
+                        <h3 class="vet-name">Dra. Ana Silva</h3>
+                        <p class="vet-specialty">Clínica Geral e Dermatologia</p>
+                        <div class="vet-rating">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star-half-alt"></i>
+                            <span>4.5 (128 avaliações)</span>
+                        </div>
+                        <p class="vet-location"><i class="fas fa-map-marker-alt"></i> Curitiba, Centro</p>
+                        <p class="vet-price"><i class="fas fa-tag"></i> A partir de R$ 150,00</p>
+                        <div class="vet-availability">
+                            <span class="availability-tag available">Disponível hoje</span>
+                        </div>
+                        <a href="#" class="btn-agendar">Agendar Consulta</a>
+                    </div>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="vet-card">
+                    <div class="vet-image">
+                        <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Dr. Carlos Mendes">
+                    </div>
+                    <div class="vet-info">
+                        <h3 class="vet-name">Dr. Carlos Mendes</h3>
+                        <p class="vet-specialty">Ortopedia e Traumatologia</p>
+                        <div class="vet-rating">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <span>5.0 (87 avaliações)</span>
+                        </div>
+                        <p class="vet-location"><i class="fas fa-map-marker-alt"></i> São José dos Pinhais</p>
+                        <p class="vet-price"><i class="fas fa-tag"></i> A partir de R$ 180,00</p>
+                        <div class="vet-availability">
+                            <span class="availability-tag soon">Próxima vaga: Amanhã</span>
+                        </div>
+                        <a href="#" class="btn-agendar">Agendar Consulta</a>
+                    </div>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="vet-card">
+                    <div class="vet-image">
+                        <img src="https://randomuser.me/api/portraits/women/45.jpg" alt="Dra. Juliana Costa">
+                    </div>
+                    <div class="vet-info">
+                        <h3 class="vet-name">Dra. Juliana Costa</h3>
+                        <p class="vet-specialty">Cardiologia</p>
+                        <div class="vet-rating">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="far fa-star"></i>
+                            <span>4.0 (56 avaliações)</span>
+                        </div>
+                        <p class="vet-location"><i class="fas fa-map-marker-alt"></i> Curitiba, Batel</p>
+                        <p class="vet-price"><i class="fas fa-tag"></i> A partir de R$ 200,00</p>
+                        <div class="vet-availability">
+                            <span class="availability-tag available">Disponível hoje</span>
+                        </div>
+                        <a href="#" class="btn-agendar">Agendar Consulta</a>
+                    </div>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="vet-card">
+                    <div class="vet-image">
+                        <img src="https://randomuser.me/api/portraits/men/67.jpg" alt="Dr. Ricardo Almeida">
+                    </div>
+                    <div class="vet-info">
+                        <h3 class="vet-name">Dr. Ricardo Almeida</h3>
+                        <p class="vet-specialty">Oftalmologia</p>
+                        <div class="vet-rating">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star-half-alt"></i>
+                            <i class="far fa-star"></i>
+                            <span>3.5 (42 avaliações)</span>
+                        </div>
+                        <p class="vet-location"><i class="fas fa-map-marker-alt"></i> Pinhais</p>
+                        <p class="vet-price"><i class="fas fa-tag"></i> A partir de R$ 160,00</p>
+                        <div class="vet-availability">
+                            <span class="availability-tag week">Disponível esta semana</span>
+                        </div>
+                        <a href="#" class="btn-agendar">Agendar Consulta</a>
+                    </div>
+                </div>
+
+                <!-- Card 5 -->
+                <div class="vet-card">
+                    <div class="vet-image">
+                        <img src="https://randomuser.me/api/portraits/women/22.jpg" alt="Dra. Mariana Santos">
+                    </div>
+                    <div class="vet-info">
+                        <h3 class="vet-name">Dra. Mariana Santos</h3>
+                        <p class="vet-specialty">Oncologia</p>
+                        <div class="vet-rating">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star-half-alt"></i>
+                            <span>4.7 (93 avaliações)</span>
+                        </div>
+                        <p class="vet-location"><i class="fas fa-map-marker-alt"></i> Curitiba, Água Verde</p>
+                        <p class="vet-price"><i class="fas fa-tag"></i> A partir de R$ 220,00</p>
+                        <div class="vet-availability">
+                            <span class="availability-tag soon">Próxima vaga: Amanhã</span>
+                        </div>
+                        <a href="#" class="btn-agendar">Agendar Consulta</a>
+                    </div>
+                </div>
+
+                <!-- Card 6 -->
+                <div class="vet-card">
+                    <div class="vet-image">
+                        <img src="https://randomuser.me/api/portraits/men/55.jpg" alt="Dr. Fernando Oliveira">
+                    </div>
+                    <div class="vet-info">
+                        <h3 class="vet-name">Dr. Fernando Oliveira</h3>
+                        <p class="vet-specialty">Clínica Geral e Cirurgia</p>
+                        <div class="vet-rating">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="far fa-star"></i>
+                            <span>4.2 (75 avaliações)</span>
+                        </div>
+                        <p class="vet-location"><i class="fas fa-map-marker-alt"></i> São José dos Pinhais</p>
+                        <p class="vet-price"><i class="fas fa-tag"></i> A partir de R$ 170,00</p>
+                        <div class="vet-availability">
+                            <span class="availability-tag available">Disponível hoje</span>
+                        </div>
+                        <a href="#" class="btn-agendar">Agendar Consulta</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Paginação -->
+            <div class="pagination">
+                <a href="#" class="active">1</a>
+                <a href="#">2</a>
+                <a href="#">3</a>
+                <a href="#">4</a>
+                <a href="#">5</a>
+                <a href="#" class="next">Próxima <i class="fas fa-chevron-right"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-logo">
+                <img src="../img/WhatsApp Image 2024-09-26 at 13.36.23 (1).jpeg" alt="VetBooking Logo">
+                <h3>VetBooking</h3>
+                <p>A melhor plataforma para encontrar veterinários para seu pet</p>
+            </div>
+            <div class="footer-links">
+                <div class="footer-section">
+                    <h4>Navegação</h4>
+                    <ul>
+                        <li><a href="../index.html">Página Inicial</a></li>
+                        <li><a href="#">Veterinários</a></li>
+                        <li><a href="#">Clínicas</a></li>
+                        <li><a href="#">Como Funciona</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Para Profissionais</h4>
+                    <ul>
+                        <li><a href="./cadastro-MV.html">Cadastro de Veterinários</a></li>
+                        <li><a href="./cadastro-clinica.html">Cadastro de Clínicas</a></li>
+                        <li><a href="#">Área do Profissional</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Contato</h4>
+                    <ul>
+                        <li><a href="#"><i class="fas fa-envelope"></i> contato@vetbooking.com.br</a></li>
+                        <li><a href="#"><i class="fas fa-phone"></i> (41) 3333-4444</a></li>
+                        <li><a href="#"><i class="fas fa-map-marker-alt"></i> Curitiba, PR</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 VetBooking - Todos os direitos reservados</p>
+        </div>
+    </footer>
+
+    <script>
+        // Toggle menu para mobile
+        const burger = document.querySelector('.burger');
+        const nav = document.querySelector('.nav-links');
+
+        burger.addEventListener('click', () => {
+            nav.classList.toggle('nav-active');
+            burger.classList.toggle('toggle');
+        });
+
+        // Simulação de filtro (apenas para demonstração)
+        document.querySelector('.btn-aplicar-filtros').addEventListener('click', function() {
+            alert('Filtros aplicados com sucesso!');
+        });
+    </script>
+</body>
+</html>

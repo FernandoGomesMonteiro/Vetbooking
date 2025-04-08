@@ -17,12 +17,34 @@
             </a>
             <div class="nav-links">
                 <a href="./index.html" class="nav-link active">Página Inicial</a>
-                <a href="#" class="nav-link">Veterinários</a>
-                <a href="#" class="nav-link">Clínicas</a>
+                <a href="./pages/catalogo-veterinarios.html" class="nav-link">Veterinários</a>
+                <a href="./pages/catalogo-clinicas.html" class="nav-link">Clínicas</a>
                 <a href="#" class="nav-link">Como Funciona</a>
             </div>
             <div class="nav-auth">
+                {% if 'user_id' in session %}
+                <div class="user-menu">
+                    <div class="user-info">
+                        <span class="user-name">{{ session['user_name'] }}</span>
+                        <div class="user-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                    </div>
+                    <div class="user-dropdown">
+                        <a href="/dashboard" class="dropdown-item">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-user"></i> Meu Perfil
+                        </a>
+                        <a href="/logout" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i> Sair
+                        </a>
+                    </div>
+                </div>
+                {% else %}
                 <a href="./pages/login.html" class="account-link">Minha Conta</a>
+                {% endif %}
             </div>
         </div>
     </header>
@@ -168,8 +190,8 @@
                 <h3 class="footer-heading">Links Rápidos</h3>
                 <ul class="footer-links">
                     <li class="footer-link"><a href="./index.html">Página Inicial</a></li>
-                    <li class="footer-link"><a href="#">Buscar Veterinários</a></li>
-                    <li class="footer-link"><a href="#">Buscar Clínicas</a></li>
+                    <li class="footer-link"><a href="./pages/catalogo-veterinarios.html">Buscar Veterinários</a></li>
+                    <li class="footer-link"><a href="./pages/catalogo-clinicas.html">Buscar Clínicas</a></li>
                     <li class="footer-link"><a href="./pages/login.html">Minha Conta</a></li>
                 </ul>
             </div>
@@ -198,5 +220,24 @@
     </footer>
 
     <script src="./script.js"></script>
+    <script>
+        // Toggle user dropdown menu
+        document.addEventListener('DOMContentLoaded', function() {
+            const userMenu = document.querySelector('.user-menu');
+            if (userMenu) {
+                userMenu.addEventListener('click', function(e) {
+                    this.classList.toggle('active');
+                    e.stopPropagation();
+                });
+            }
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function() {
+                if (userMenu) {
+                    userMenu.classList.remove('active');
+                }
+            });
+        });
+    </script>
 </body>
 </html>

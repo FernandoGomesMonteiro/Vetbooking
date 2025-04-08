@@ -87,6 +87,65 @@
     background-color: var(--primary-dark);
 }
 
+/* Estilos para o menu do usuário no navbar */
+.user-menu {
+    position: relative;
+    cursor: pointer;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.user-name {
+    font-weight: 500;
+    color: var(--text-dark);
+}
+
+.user-avatar {
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+
+.user-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: var(--white);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-md);
+    min-width: 200px;
+    z-index: 100;
+    display: none;
+    overflow: hidden;
+}
+
+.user-menu.active .user-dropdown {
+    display: block;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    color: var(--text-dark);
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.dropdown-item:hover {
+    background-color: var(--background-light);
+}
+
+.dropdown-item.active {
+    background-color: var(--primary-light);
+    color: var(--primary);
+    font-weight: 500;
+}
+
 /* Hero Section */
 .hero {
     background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
