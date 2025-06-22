@@ -200,6 +200,25 @@ def create_database():
           CONSTRAINT fk_favorito_tutor FOREIGN KEY (tutor_id) REFERENCES tutores (tutor_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
         """)
+
+
+        cursor.execute("""
+       CREATE TABLE IF NOT EXISTS pets (
+          pet_id int NOT NULL AUTO_INCREMENT,
+          nome_pet varchar(255) DEFAULT NULL,
+          especie varchar(255) DEFAULT NULL,
+          raca varchar(255) DEFAULT NULL,
+          data_nascimento datetime DEFAULT NULL,
+          sexo char(1) DEFAULT NULL,
+          peso double DEFAULT NULL,
+          tutor_id int DEFAULT NULL,
+          data_cadastro timestamp NULL DEFAULT NULL,
+          foto varchar(255) DEFAULT NULL,  -- COLUNA ADICIONADA
+          PRIMARY KEY (pet_id),
+          KEY fk_pet_tutor (tutor_id),
+          CONSTRAINT fk_pet_tutor FOREIGN KEY (tutor_id) REFERENCES tutores (tutor_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+        """)
         
         print("Todas as tabelas foram criadas com sucesso!")
         

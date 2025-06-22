@@ -1,7 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 import os
+import uuid
 import mysql.connector
 import datetime
+from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__, 
@@ -66,6 +68,248 @@ def login_new_page():
 @app.route('/cadastro')
 def cadastro():
     return render_template('cadastro.html')
+# Rota para gerenciar pets
+@app.route('/gerenciar-pets')
+def gerenciar_pets():
+    if 'user_id' not in session or session['user_type'] != 'tutor':
+        flash('Acesso não autorizado')
+        return redirect(url_for('login_page'))
+    
+    user_id = session['user_id']
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Buscar pets do tutor
+    cursor.execute('SELECT * FROM pets WHERE tutor_id = %s', (user_id,))
+    pets = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    return render_template('pages/gerenciar-pets.html', pets=pets)
+
+
+# Configurações para upload de imagens
+UPLOAD_FOLDER = 'static/uploads/pets'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
+
+# Certifique-se de que a pasta de uploads existe
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+
+# Rota para adicionar pet
+@app.route('/adicionar-pet', methods=['POST'])
+def adicionar_pet():
+
+    if 'user_id' not in session or session['user_type'] != 'tutor':
+        return jsonify({'success': False, 'message': 'Acesso não autorizado'}), 403
+    
+    tutor_id = session['user_id']
+    nome_pet = request.form['nome_pet']
+    especie = request.form['especie']
+    raca = request.form.get('raca', '')
+    data_nascimento = request.form.get('data_nascimento')
+    sexo = request.form.get('sexo', '')  # Corrigido para usar get()
+    peso = request.form.get('peso')
+    
+    # Processar a foto
+    foto = None
+    if 'foto' in request.files:
+        file = request.files['foto']
+        if file.filename != '' and allowed_file(file.filename):
+            filename = secure_filename(f"{uuid.uuid4().hex}.{file.filename.rsplit('.', 1)[1].lower()}")
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            foto = filename
+
+        
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # VERIFICAÇÃO CRÍTICA: Tutor existe?
+        cursor.execute('SELECT 1 FROM tutores WHERE tutor_id = %s', (tutor_id,))
+        if not cursor.fetchone():
+            return jsonify({
+                'success': False, 
+                'message': f'Tutor não encontrado (ID: {tutor_id})'
+            }), 404
+        
+        # Inserir pet COM FOTO
+        cursor.execute(
+            'INSERT INTO pets (nome_pet, especie, raca, data_nascimento, sexo, peso, tutor_id, data_cadastro, foto) '
+            'VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), %s)',
+            (nome_pet, especie, raca, data_nascimento, sexo, peso, tutor_id, foto)  # Adicionado foto no final
+        )
+        conn.commit()
+        return jsonify({'success': True})
+    except mysql.connector.Error as err:
+        conn.rollback()
+        return jsonify({'success': False, 'message': str(err)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+# Rota para atualizar pet
+@app.route('/atualizar-pet', methods=['POST'])
+def atualizar_pet():
+    if 'user_id' not in session or session['user_type'] != 'tutor':
+        return jsonify({'success': False, 'message': 'Acesso não autorizado'}), 403
+    
+    pet_id = request.form['pet_id']
+    tutor_id = session['user_id']
+    nome_pet = request.form['nome_pet']
+    especie = request.form['especie']
+    raca = request.form.get('raca', '')
+    data_nascimento = request.form.get('data_nascimento')
+    sexo = request.form.get('sexo', '')  # Corrigido para usar get()
+    peso = request.form.get('peso')
+    
+    # Processar a foto
+    foto = None
+    if 'foto' in request.files:
+        file = request.files['foto']
+        if file.filename != '' and allowed_file(file.filename):
+            filename = secure_filename(f"{uuid.uuid4().hex}.{file.filename.rsplit('.', 1)[1].lower()}")
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            foto = filename
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)  # Usar dictionary=True
+    
+    try:
+        # Verificar se o pet pertence ao tutor
+        cursor.execute('SELECT tutor_id, foto as old_foto FROM pets WHERE pet_id = %s', (pet_id,))
+        pet = cursor.fetchone()
+        
+        if not pet or pet['tutor_id'] != tutor_id:
+            return jsonify({'success': False, 'message': 'Pet não encontrado ou não pertence ao tutor'}), 404
+        
+        # Manter foto antiga se nova não foi enviada
+        if foto is None:
+            foto = pet['old_foto']
+        
+        # Atualizar COM FOTO
+        cursor.execute(
+            'UPDATE pets SET nome_pet = %s, especie = %s, raca = %s, data_nascimento = %s, sexo = %s, peso = %s, foto = %s '
+            'WHERE pet_id = %s',
+            (nome_pet, especie, raca, data_nascimento, sexo, peso, foto, pet_id)  # Adicionado foto
+        )
+        conn.commit()
+        return jsonify({'success': True})
+    except mysql.connector.Error as err:
+        conn.rollback()
+        return jsonify({'success': False, 'message': str(err)}), 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/agendar-consulta')
+def agendar_consulta_page():
+    if 'user_id' not in session or session['user_type'] != 'tutor':
+        flash('Você precisa estar logado como tutor para agendar uma consulta')
+        return redirect(url_for('login_page'))
+    
+    tutor_id = session['user_id']
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Buscar pets do tutor
+    cursor.execute('SELECT * FROM pets WHERE tutor_id = %s', (tutor_id,))
+    pets = cursor.fetchall()
+    
+    # Buscar clínicas disponíveis
+    cursor.execute('SELECT * FROM clinicas')
+    clinicas = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    # Data de hoje no formato YYYY-MM-DD
+    hoje = datetime.date.today().isoformat()
+    
+    # Gerar horários disponíveis (9:00 às 18:00, a cada 30 minutos)
+    horas_disponiveis = []
+    for hora in range(9, 19):
+        for minuto in [0, 30]:
+            horas_disponiveis.append(f"{hora:02d}:{minuto:02d}")
+    
+    return render_template('pages/agendar-consulta.html', 
+                           pets=pets, 
+                           clinicas=clinicas,
+                           hoje=hoje,
+                           horas_disponiveis=horas_disponiveis)
+
+# Rota para buscar médicos de uma clínica
+@app.route('/get-medicos-da-clinica/<int:clinica_id>')
+def get_medicos_da_clinica(clinica_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute(
+        'SELECT m.medico_id, m.nome_medico '
+        'FROM medicos m '
+        'JOIN medicos_clinicas mc ON m.medico_id = mc.medico_id '
+        'WHERE mc.clinica_id = %s',
+        (clinica_id,)
+    )
+    medicos = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    return jsonify(medicos)
+
+# Rota para salvar o agendamento
+@app.route('/salvar-agendamento', methods=['POST'])
+def salvar_agendamento():
+    if 'user_id' not in session or session['user_type'] != 'tutor':
+        return jsonify({'success': False, 'message': 'Acesso não autorizado'}), 403
+    
+    tutor_id = session['user_id']
+    pet_id = request.form['pet_id']
+    clinica_id = request.form['clinica_id']
+    medico_id = request.form.get('medico_id', None)
+    data_consulta = request.form['data_consulta']
+    hora_consulta = request.form['hora_consulta']
+    observacoes = request.form.get('observacoes', '')
+    
+    # Combinar data e hora
+    data_hora = f"{data_consulta} {hora_consulta}:00"
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Verificar se o pet pertence ao tutor
+        cursor.execute('SELECT tutor_id FROM pets WHERE pet_id = %s', (pet_id,))
+        pet = cursor.fetchone()
+        if not pet or pet[0] != tutor_id:
+            return jsonify({'success': False, 'message': 'Pet não encontrado ou não pertence ao tutor'}), 404
+        
+        # Inserir agendamento
+        cursor.execute(
+            'INSERT INTO agendamentos (data_hora, pet_id, medico_id, clinica_id, status, observacoes, data_cadastro) '
+            'VALUES (%s, %s, %s, %s, "agendado", %s, NOW())',
+            (data_hora, pet_id, medico_id, clinica_id, observacoes)
+        )
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Consulta agendada com sucesso!'})
+    except mysql.connector.Error as err:
+        conn.rollback()
+        return jsonify({'success': False, 'message': str(err)}), 500
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -152,14 +396,17 @@ def dashboard():
         
         # Contar agendamentos do tutor
         cursor.execute(
-            'SELECT COUNT(*) as count FROM agendamentos a '
+            'SELECT a.data_hora, m.nome_medico, c.razao_social, p.nome_pet '
+            'FROM agendamentos a '
             'JOIN pets p ON a.pet_id = p.pet_id '
-            'WHERE p.tutor_id = %s AND a.status = "agendado"', 
+            'JOIN clinicas c ON a.clinica_id = c.clinica_id '
+            'LEFT JOIN medicos m ON a.medico_id = m.medico_id '
+            'WHERE p.tutor_id = %s AND a.status = "agendado" AND a.data_hora > NOW() '
+            'ORDER BY a.data_hora ASC LIMIT 3',
             (user_id,)
         )
-        agendamentos = cursor.fetchone()
-        data['agendamentos_count'] = agendamentos['count'] if agendamentos else 0
-        
+        proximas_consultas = cursor.fetchall()
+        data['proximas_consultas'] = proximas_consultas
         # Contar favoritos do tutor
         cursor.execute('SELECT COUNT(*) as count FROM favoritos WHERE tutor_id = %s', (user_id,))
         favoritos = cursor.fetchone()
@@ -794,8 +1041,29 @@ def atualizar_clinica():
     flash('Perfil atualizado com sucesso!')
     return redirect(url_for('dashboard'))
 
+
+
+
+@app.route('/api/veterinarios')
+def api_veterinarios():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('SELECT * FROM medicos')
+    medicos = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify(medicos)
+
+@app.route('/api/clinicas')
+def api_clinicas():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('SELECT * FROM clinicas')
+    clinicas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify(clinicas)
+
 if __name__ == '__main__':
-    # Verificar se o banco de dados existe, se não, inicializá-lo
-    if not os.path.exists('database.db'):
         init_db()
-    app.run(debug=True)
+app.run(debug=True)

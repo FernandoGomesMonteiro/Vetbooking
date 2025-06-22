@@ -192,84 +192,7 @@
                     </div>
                 </div>
 
-                <!-- Card 4 -->
-                <div class="clinic-card">
-                    <div class="clinic-image">
-                        <img src="https://images.unsplash.com/photo-1606761568499-6d2451b23c66?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="Clínica Veterinária PetPlus">
-                    </div>
-                    <div class="clinic-info">
-                        <h3 class="clinic-name">Clínica Veterinária PetPlus</h3>
-                        <p class="clinic-services">Consultas, Exames, Fisioterapia, Acupuntura</p>
-                        <div class="clinic-rating">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star-half-alt"></i>
-                            <i class="far fa-star"></i>
-                            <span>3.5 (45 avaliações)</span>
-                        </div>
-                        <p class="clinic-location"><i class="fas fa-map-marker-alt"></i> Pinhais</p>
-                        <p class="clinic-price"><i class="fas fa-tag"></i> Consulta a partir de R$ 90,00</p>
-                        <div class="clinic-features">
-                            <span class="feature-tag"><i class="fas fa-heartbeat"></i> Fisioterapia</span>
-                            <span class="feature-tag"><i class="fas fa-spa"></i> Acupuntura</span>
-                        </div>
-                        <a href="#" class="btn-agendar">Ver Detalhes</a>
-                    </div>
-                </div>
-
-                <!-- Card 5 -->
-                <div class="clinic-card">
-                    <div class="clinic-image">
-                        <img src="https://images.unsplash.com/photo-1576073353676-953da8a6f32f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="Hospital Veterinário 24h">
-                    </div>
-                    <div class="clinic-info">
-                        <h3 class="clinic-name">Hospital Veterinário 24h</h3>
-                        <p class="clinic-services">Emergências, Cirurgias, UTI, Internação</p>
-                        <div class="clinic-rating">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <span>4.8 (210 avaliações)</span>
-                        </div>
-                        <p class="clinic-location"><i class="fas fa-map-marker-alt"></i> Curitiba, Portão</p>
-                        <p class="clinic-price"><i class="fas fa-tag"></i> Consulta a partir de R$ 180,00</p>
-                        <div class="clinic-features">
-                            <span class="feature-tag"><i class="fas fa-clock"></i> Emergência 24h</span>
-                            <span class="feature-tag"><i class="fas fa-procedures"></i> UTI</span>
-                            <span class="feature-tag"><i class="fas fa-parking"></i> Estacionamento</span>
-                        </div>
-                        <a href="#" class="btn-agendar">Ver Detalhes</a>
-                    </div>
-                </div>
-
-                <!-- Card 6 -->
-                <div class="clinic-card">
-                    <div class="clinic-image">
-                        <img src="https://images.unsplash.com/photo-1599443015574-be5fe8a05783?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="Clínica Veterinária Amigo Fiel">
-                    </div>
-                    <div class="clinic-info">
-                        <h3 class="clinic-name">Clínica Veterinária Amigo Fiel</h3>
-                        <p class="clinic-services">Consultas, Vacinação, Odontologia</p>
-                        <div class="clinic-rating">
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="fas fa-star"></i>
-                            <i class="far fa-star"></i>
-                            <span>4.2 (68 avaliações)</span>
-                        </div>
-                        <p class="clinic-location"><i class="fas fa-map-marker-alt"></i> São José dos Pinhais</p>
-                        <p class="clinic-price"><i class="fas fa-tag"></i> Consulta a partir de R$ 110,00</p>
-                        <div class="clinic-features">
-                            <span class="feature-tag"><i class="fas fa-tooth"></i> Odontologia</span>
-                            <span class="feature-tag"><i class="fas fa-shopping-bag"></i> Pet Shop</span>
-                        </div>
-                        <a href="#" class="btn-agendar">Ver Detalhes</a>
-                    </div>
-                </div>
+                
             </div>
 
             <!-- Paginação -->
@@ -329,5 +252,56 @@
     </footer>
 
     <script src="../script-new.js"></script>
+</body>
+</html>
+
+<script>
+function createClinicCard(clinic) {
+    const card = document.createElement('div');
+    card.className = 'clinic-card';
+    card.innerHTML = `
+        <div class="clinic-image">
+            <img src="${clinic.imagem || 'https://images.unsplash.com/photo-1516574187841-cb9cc2ca948b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'}" alt="${clinic.nome}">
+        </div>
+        <div class="clinic-info">
+            <h3 class="clinic-name">${clinic.nome}</h3>
+            <p class="clinic-services">${clinic.servicos || ''}</p>
+            <div class="clinic-rating">
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star-half-alt"></i>
+                <span>${clinic.avaliacao || ''}</span>
+            </div>
+            <p class="clinic-location"><i class="fas fa-map-marker-alt"></i> ${clinic.localizacao || ''}</p>
+            <p class="clinic-price"><i class="fas fa-tag"></i> ${clinic.preco || ''}</p>
+            <div class="clinic-features">
+                ${(clinic.caracteristicas || '').split(',').map(f => `<span class='feature-tag'>${f}</span>`).join('')}
+            </div>
+            <a href="#" class="btn-ver-detalhes">Ver Detalhes</a>
+        </div>
+    `;
+    card.querySelector('.btn-ver-detalhes').addEventListener('click', function(e) {
+        e.preventDefault();
+        window.location.href = 'clinica-tutor.html?id=' + clinic.id;
+    });
+    return card;
+}
+
+function loadClinics() {
+    fetch('/api/clinicas')
+        .then(res => res.json())
+        .then(data => {
+            const container = document.querySelector('.clinic-cards');
+            container.innerHTML = '';
+            data.forEach(clinic => {
+                container.appendChild(createClinicCard(clinic));
+            });
+        });
+}
+
+document.addEventListener('DOMContentLoaded', loadClinics);
+</script>
 </body>
 </html>

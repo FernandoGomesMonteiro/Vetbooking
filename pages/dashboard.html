@@ -80,16 +80,18 @@
                     </div>
                 </div>
                 
-                <div class="dashboard-card">
-                    <div class="card-icon">
-                        <i class="fas fa-paw"></i>
-                    </div>
-                    <div class="card-content">
-                        <h3 class="card-title">Meus Pets</h3>
-                        <p class="card-value">{{ pets_count }}</p>
-                        <a href="#" class="card-link">Gerenciar pets</a>
-                    </div>
-                </div>
+                
+    <div class="dashboard-card">
+    <div class="card-icon">
+        <i class="fas fa-paw"></i>
+    </div>
+    <div class="card-content">
+        <h3 class="card-title">Meus Pets</h3>
+        <p class="card-value">{{ pets_count }}</p>
+        <!-- Alteração aqui: adicionei o link para gerenciar pets -->
+        <a href="{{ url_for('gerenciar_pets') }}" class="card-link">Gerenciar pets</a>
+    </div>
+</div>
                 
                 <div class="dashboard-card">
                     <div class="card-icon">
