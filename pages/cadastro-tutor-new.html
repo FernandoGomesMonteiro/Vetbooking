@@ -37,7 +37,7 @@
                 <div class="progress-bar-fill" style="width: 33%"></div>
             </div>
             
-            <form id="tutorForm" class="form" novalidate>
+            <form id="tutorForm" class="form" novalidate action="/submit-tutor" method="POST">
                 <!-- Etapa 1: Informações Pessoais -->
                 <div class="form-step active" data-step="1">
                     <div class="form-group">
@@ -59,6 +59,14 @@
                         <input type="text" id="cpf" name="cpf" class="form-input" placeholder="000.000.000-00" required>
                         <i class="fas fa-id-card input-icon"></i>
                         <span class="error-message">Por favor, insira um CPF válido</span>
+                    </div>
+                    
+                    <!-- Campo adicionado: Data de Nascimento -->
+                    <div class="form-group">
+                        <label for="birth-date" class="form-label">Data de Nascimento</label>
+                        <input type="date" id="birth-date" name="birth-date" class="form-input" required>
+                        <i class="fas fa-calendar input-icon"></i>
+                        <span class="error-message">Por favor, insira sua data de nascimento</span>
                     </div>
 
                     <div class="form-navigation">
@@ -87,6 +95,45 @@
                         <label for="complement" class="form-label">Complemento</label>
                         <input type="text" id="complement" name="complement" class="form-input" placeholder="Apartamento, bloco, etc.">
                         <i class="fas fa-building input-icon"></i>
+                    </div>
+                    
+                    <!-- Campos adicionados: Bairro e Telefone -->
+                    <div class="form-group">
+                        <label for="bairro" class="form-label">Bairro</label>
+                        <input type="text" id="bairro" name="bairro" class="form-input" placeholder="Seu bairro" required>
+                        <i class="fas fa-map-signs input-icon"></i>
+                        <span class="error-message">Por favor, insira seu bairro</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone" class="form-label">Telefone</label>
+                        <input type="tel" id="phone" name="phone" class="form-input" placeholder="(00) 00000-0000" required>
+                        <i class="fas fa-phone input-icon"></i>
+                        <span class="error-message">Por favor, insira seu telefone</span>
+                    </div>
+                    
+                    <!-- Campos adicionados: Cidade e Estado -->
+                    <div class="form-group">
+                        <label for="city" class="form-label">Cidade</label>
+                        <input type="text" id="city" name="city" class="form-input" placeholder="Sua cidade" required>
+                        <i class="fas fa-city input-icon"></i>
+                        <span class="error-message">Por favor, insira sua cidade</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="state" class="form-label">Estado</label>
+                        <select id="state" name="state" class="form-input" required>
+                            <option value="">Selecione</option>
+                            <option value="PR">Paraná</option>
+                            <option value="SC">Santa Catarina</option>
+                            <option value="RS">Rio Grande do Sul</option>
+                            <option value="SP">São Paulo</option>
+                            <option value="RJ">Rio de Janeiro</option>
+                            <option value="MG">Minas Gerais</option>
+                            <!-- Adicione outros estados conforme necessário -->
+                        </select>
+                        <i class="fas fa-map input-icon"></i>
+                        <span class="error-message">Por favor, selecione seu estado</span>
                     </div>
 
                     <div class="form-navigation">
@@ -200,17 +247,25 @@
             // Validação dos campos
             function validateStep(step) {
                 const currentStepElement = document.querySelector(`[data-step="${step}"]`);
-                const inputs = currentStepElement.querySelectorAll('input[required]');
+                const inputs = currentStepElement.querySelectorAll('input[required], select[required]');
                 let isValid = true;
 
                 inputs.forEach(input => {
                     if (!input.value) {
                         isValid = false;
                         input.classList.add('error');
-                        input.nextElementSibling.nextElementSibling.classList.add('visible');
+                        // Mostra a mensagem de erro
+                        const errorMessage = input.nextElementSibling.nextElementSibling;
+                        if (errorMessage && errorMessage.classList.contains('error-message')) {
+                            errorMessage.classList.add('visible');
+                        }
                     } else {
                         input.classList.remove('error');
-                        input.nextElementSibling.nextElementSibling.classList.remove('visible');
+                        // Esconde a mensagem de erro
+                        const errorMessage = input.nextElementSibling.nextElementSibling;
+                        if (errorMessage && errorMessage.classList.contains('error-message')) {
+                            errorMessage.classList.remove('visible');
+                        }
                     }
                 });
 
@@ -236,10 +291,9 @@
 
             // Validação do formulário no envio
             form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                if (validateStep(currentStep)) {
-                    // Aqui você pode adicionar a lógica para enviar os dados do formulário
-                    alert('Cadastro realizado com sucesso!');
+                // Valida a etapa atual antes de enviar
+                if (!validateStep(currentStep)) {
+                    e.preventDefault();
                 }
             });
 
@@ -260,6 +314,39 @@
                 if (value.length <= 8) {
                     value = value.replace(/^(\d{5})(\d{3}).*/, '$1-$2');
                     e.target.value = value;
+                }
+            });
+            
+            // Máscara para Telefone
+            const phoneInput = document.getElementById('phone');
+            phoneInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 11) value = value.substring(0, 11);
+                
+                if (value.length > 2) {
+                    value = `(${value.substring(0,2)}) ${value.substring(2)}`;
+                }
+                if (value.length > 10) {
+                    value = value.substring(0,10) + '-' + value.substring(10);
+                }
+                e.target.value = value;
+            });
+            
+            // Busca automática de endereço pelo CEP
+            cepInput.addEventListener('blur', function() {
+                const cep = this.value.replace(/\D/g, '');
+                if (cep.length === 8) {
+                    fetch(`https://viacep.com.br/ws/${cep}/json/`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (!data.erro) {
+                                document.getElementById('address').value = data.logradouro || '';
+                                document.getElementById('bairro').value = data.bairro || '';
+                                document.getElementById('city').value = data.localidade || '';
+                                document.getElementById('state').value = data.uf || '';
+                            }
+                        })
+                        .catch(error => console.error('Erro ao buscar CEP:', error));
                 }
             });
         });
