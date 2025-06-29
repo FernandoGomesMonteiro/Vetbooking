@@ -17,7 +17,7 @@ O VetBooking é uma plataforma inovadora que revoluciona a forma como tutores de
 #### Acesso e Cadastro
 | Página Inicial | Login | Cadastro Tutor |
 |----------------|-------|----------------|
-| ![Home](screenshots/home.png) | ![Login](screenshots/login.png) | ![Tutor](screenshots/cadastroTutor.png) |
+| ![Home](screenshots/Home.png) | ![Login](screenshots/login.png) | ![Tutor](screenshots/cadastroTutor.png) |
 
 #### Área Profissional
 | Cadastro Veterinário | Cadastro Clínica | Gerenciamento de Pets |
