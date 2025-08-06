@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendar Consulta - PetBooking</title>
+    <link rel="stylesheet" href="../styles/agendar-consultas.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <!-- Header/Navbar -->
+    <header class="header">
+        <div class="navbar">
+            <a href="{{ url_for('index') }}" class="logo">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="PetBooking Logo">
+                <span class="logo-text">PetBooking</span>
+            </a>
+            <div class="nav-links">
+                <a href="{{ url_for('index') }}">Página Inicial</a>
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('logout') }}">Sair</a>
+            </div>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="form-agendar-consulta">
+            <div class="form-header">
+                <h1>Agendar Consulta</h1>
+                <p class="form-description">Preencha os dados para agendar uma consulta para seu pet</p>
+            </div>
+            <form id="agendarConsultaForm" class="form" novalidate>
+                <!-- Selecione o Pet -->
+                <div class="form-group">
+                    <label for="pet" class="form-label">Selecione seu Pet</label>
+                    <select id="pet" name="pet_id" class="form-input" required>
+                        <option value="">Selecione um pet</option>
+                        {% for pet in pets %}
+                        <option value="{{ pet.pet_id }}">{{ pet.nome_pet }} ({{ pet.especie }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Selecione a Clínica -->
+                <div class="form-group">
+                    <label for="clinica" class="form-label">Clínica</label>
+                    <select id="clinica" name="clinica_id" class="form-input" required>
+                        <option value="">Selecione uma clínica</option>
+                        {% for clinica in clinicas %}
+                        <option value="{{ clinica.clinica_id }}">{{ clinica.razao_social }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Selecione o Profissional (opcional) -->
+                <div class="form-group">
+                    <label for="profissional" class="form-label">Profissional (opcional)</label>
+                    <select id="profissional" name="profissional_id" class="form-input" disabled>
+                        <option value="">Selecione uma clínica primeiro</option>
+                    </select>
+                </div>
+                
+                <!-- Data e Hora -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="data-consulta" class="form-label">Data</label>
+                        <input type="date" id="data-consulta" name="data_consulta" class="form-input" required min="{{ hoje }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="hora-consulta" class="form-label">Horário</label>
+                        <select id="hora-consulta" name="hora_consulta" class="form-input" required>
+                            <option value="">Selecione</option>
+                            {% for hora in horas_disponiveis %}
+                            <option value="{{ hora }}">{{ hora }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Observações -->
+                <div class="form-group">
+                    <label for="observacoes" class="form-label">Observações</label>
+                    <textarea id="observacoes" name="observacoes" class="form-input" placeholder="Descreva sintomas ou observações relevantes"></textarea>
+                </div>
+                
+                <div class="form-navigation">
+                    <button type="submit" class="btn-submit">
+                        <i class="fas fa-calendar-check"></i> Agendar Consulta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <footer class="footer">
+        <!-- ... (código do footer existente) ... -->
+    </footer>
+    
+    <script>
+        $(document).ready(function() {
+            // Obter a data de hoje no formato YYYY-MM-DD
+            const hoje = new Date().toISOString().split('T')[0];
+            $('#data-consulta').attr('min', hoje);
+            
+            // Gerar horários disponíveis (9:00 às 18:00, a cada 30 minutos)
+            const horasDisponiveis = [];
+            for (let hora = 9; hora <= 18; hora++) {
+                for (let minuto = 0; minuto < 60; minuto += 30) {
+                    const horaStr = hora.toString().padStart(2, '0');
+                    const minutoStr = minuto.toString().padStart(2, '0');
+                    horasDisponiveis.push(`${horaStr}:${minutoStr}`);
+                }
+            }
+            
+            // Preencher o select de horários
+            const horaSelect = $('#hora-consulta');
+            horaSelect.empty().append('<option value="">Selecione</option>');
+            horasDisponiveis.forEach(hora => {
+                horaSelect.append(`<option value="${hora}">${hora}</option>`);
+            });
+            
+            // Quando uma clínica é selecionada, buscar seus profissionais
+            $('#clinica').change(function() {
+                const clinicaId = $(this).val();
+                if (clinicaId) {
+                    $('#profissional').prop('disabled', false);
+                    
+                    $.getJSON(`/get-profissionais-da-clinica/${clinicaId}`, function(profissionais) {
+                        const profSelect = $('#profissional');
+                        profSelect.empty().append('<option value="">Selecione um profissional (opcional)</option>');
+                        
+                        profissionais.forEach(profissional => {
+                            profSelect.append(`<option value="${profissional.profissional_id}">${profissional.nome_profissional}</option>`);
+                        });
+                    });
+                } else {
+                    $('#profissional').prop('disabled', true).val('');
+                }
+            });
+            
+            // Enviar o formulário
+            $('#agendarConsultaForm').submit(function(e) {
+                e.preventDefault();
+                
+                // Coletar dados do formulário
+                const formData = $(this).serialize();
+                
+                // Enviar para o servidor
+                $.ajax({
+                    type: 'POST',
+                    url: '/salvar-agendamento',
+                    data: formData,
+                    success: function(response) {
+                        if (response.success) {
+                            alert(response.message);
+                            window.location.href = "{{ url_for('dashboard') }}";
+                        } else {
+                            alert('Erro: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('Erro ao processar sua solicitação. Tente novamente.');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

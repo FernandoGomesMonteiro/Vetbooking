@@ -1,0 +1,58 @@
+/* Estilos para o menu do usuário no navbar */
+.user-menu {
+    position: relative;
+    cursor: pointer;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-name {
+    font-weight: 500;
+    color: var(--text-dark);
+}
+
+.user-avatar {
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+
+.user-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    min-width: 200px;
+    z-index: 100;
+    display: none;
+    overflow: hidden;
+}
+
+.user-menu.active .user-dropdown {
+    display: block;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    color: #333;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #f5f5f5;
+}
+
+.dropdown-item.active {
+    background-color: #e6f7ff;
+    color: #0077cc;
+    font-weight: 500;
+}

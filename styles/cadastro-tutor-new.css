@@ -1,0 +1,364 @@
+/* Estilos para o formulário de cadastro de tutor */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('base.css');
+
+/* Estilos do Header/Navbar */
+.header {
+    background-color: var(--white);
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-xl);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+.logo img {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+    margin-right: var(--spacing-sm);
+}
+
+.logo-text {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.nav-links {
+    display: flex;
+    gap: var(--spacing-lg);
+}
+
+.nav-link {
+    color: var(--text-dark);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+    color: var(--primary);
+}
+
+/* Container principal */
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: var(--spacing-xl);
+    min-height: calc(100vh - 60px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: var(--background);
+}
+
+/* Layout do formulário */
+.form-cadastro-tutor {
+    background-color: var(--white);
+    padding: var(--spacing-2xl);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 600px;
+    position: relative;
+}
+
+.form-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.form-header h1 {
+    color: var(--text-dark);
+    font-size: var(--font-size-2xl);
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+}
+
+.form-description {
+    color: var(--text-medium);
+    font-size: var(--font-size-md);
+    margin-bottom: var(--spacing-xl);
+}
+
+/* Barra de progresso */
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background-color: var(--accent);
+    border-radius: var(--border-radius-full);
+    margin-bottom: var(--spacing-2xl);
+    position: relative;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background-color: var(--primary);
+    border-radius: var(--border-radius-full);
+    transition: width 0.3s ease;
+}
+
+/* Etapas do formulário */
+.form-step {
+    display: none;
+}
+
+.form-step.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+/* Campos do formulário */
+.form-group {
+    margin-bottom: var(--spacing-lg);
+    position: relative;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: var(--spacing-xs);
+    color: var(--text-dark);
+    font-weight: 500;
+    font-size: var(--font-size-sm);
+}
+
+.form-input {
+    width: 100%;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border: 2px solid var(--accent);
+    border-radius: var(--border-radius-md);
+    font-size: var(--font-size-md);
+    transition: all var(--transition-fast);
+    background-color: var(--white);
+}
+
+.form-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0, 179, 155, 0.1);
+    outline: none;
+}
+
+.form-input.error {
+    border-color: var(--error);
+}
+
+.form-input.success {
+    border-color: var(--success);
+}
+
+.input-icon {
+    position: absolute;
+    right: var(--spacing-md);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-medium);
+}
+
+.error-message {
+    color: var(--error);
+    font-size: var(--font-size-sm);
+    margin-top: var(--spacing-xs);
+    display: none;
+}
+
+.error-message.visible {
+    display: block;
+}
+
+/* Botões de navegação */
+.form-navigation {
+    display: flex;
+    justify-content: space-between;
+    margin-top: var(--spacing-xl);
+}
+
+.btn-prev {
+    background-color: var(--white);
+    border: 2px solid var(--primary);
+    color: var(--primary);
+}
+
+.btn-next,
+.btn-submit {
+    background-color: var(--primary);
+    color: var(--white);
+}
+
+.btn-prev,
+.btn-next,
+.btn-submit {
+    padding: var(--spacing-md) var(--spacing-xl);
+    border-radius: var(--border-radius-md);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-prev:hover {
+    background-color: var(--primary-light);
+    border-color: var(--primary-light);
+    color: var(--white);
+}
+
+.btn-next:hover,
+.btn-submit:hover {
+    background-color: var(--primary-dark);
+}
+
+/* Links de navegação */
+.form-footer {
+    text-align: center;
+    margin-top: var(--spacing-xl);
+    color: var(--text-medium);
+}
+
+.form-footer a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.form-footer a:hover {
+    color: var(--primary-dark);
+}
+
+/* Animações */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Estilos do Footer */
+.footer {
+    margin-top: var(--spacing-2xl);
+    background-color: var(--text-dark);
+    color: var(--white);
+    padding: var(--spacing-xl) 0;
+}
+
+.footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-md);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-xl);
+}
+
+.footer-logo {
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+/* Controle do tamanho da imagem no footer */
+.footer-logo img {
+    height: 30px;
+    width: auto;
+    margin-right: var(--spacing-sm);
+    object-fit: contain;
+}
+
+.footer-logo-text {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--white);
+}
+
+.footer-description {
+    color: var(--accent);
+    margin-bottom: var(--spacing-lg);
+}
+
+.footer-heading {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--spacing-md);
+    color: var(--white);
+}
+
+.footer-links {
+    list-style: none;
+}
+
+.footer-links li {
+    margin-bottom: var(--spacing-sm);
+}
+
+.footer-links a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.footer-links a:hover {
+    color: var(--primary-light);
+}
+
+.footer-bottom {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-md) var(--spacing-md) 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: var(--spacing-xl);
+    text-align: center;
+    color: var(--accent);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .container {
+        padding: var(--spacing-md);
+    }
+
+    .form-cadastro-tutor {
+        padding: var(--spacing-xl);
+    }
+
+    .form-header h1 {
+        font-size: var(--font-size-xl);
+    }
+
+    .btn-prev,
+    .btn-next,
+    .btn-submit {
+        padding: var(--spacing-sm) var(--spacing-lg);
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: var(--spacing-sm);
+    }
+
+    .form-cadastro-tutor {
+        padding: var(--spacing-lg);
+    }
+
+    .form-navigation {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+
+    .btn-prev,
+    .btn-next,
+    .btn-submit {
+        width: 100%;
+    }
+}
