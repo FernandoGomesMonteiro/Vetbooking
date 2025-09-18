@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VetBooking - Dashboard</title>
+    <link rel="stylesheet" href="../styles/new-style.css">
+    <link rel="stylesheet" href="../styles/dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header/Navbar -->
+    <header class="header">
+        <div class="navbar">
+            <a href="../index.html" class="logo">
+                <img src="../img/Imagem do WhatsApp de 2025-09-17 à(s) 15.28.08_75e67870.jpg" alt="VetBooking Logo">
+                <span class="logo-text">VetBooking</span>
+            </a>
+            <div class="nav-links">
+                <a href="../index.html" class="nav-link">Página Inicial</a>
+                <a href="./catalogo-clinicas.html" class="nav-link">Clínicas</a>
+                <a href="#" class="nav-link">Como Funciona</a>
+            </div>
+            <div class="nav-auth">
+                <div class="user-menu">
+                    <div class="user-info">
+                        <span class="user-name">{{ user_name }}</span>
+                        <div class="user-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                    </div>
+                    <div class="user-dropdown">
+                        <a href="./dashboard.html" class="dropdown-item active">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                        <a href="./editar-perfil.html" class="dropdown-item">
+                            <i class="fas fa-user"></i> Meu Perfil
+                        </a>
+                        <a href="/logout" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i> Sair
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Dashboard Content -->
+    <main class="dashboard-container">
+        <!-- User Info Section -->
+        <section class="user-profile-section">
+            <div class="user-profile-card">
+                <div class="user-avatar-large">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="user-details">
+                    <h2 class="user-name-large">{{ user_name }}</h2>
+                    <p class="user-type">{{ user_type_display }}</p>
+                    <p class="user-since">Membro desde {{ user_since }}</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dashboard Cards Section -->
+        <section class="dashboard-cards">
+            <h2 class="section-title">Meu Dashboard</h2>
+            
+            <!-- Cards for Tutor -->
+            {% if user_type == 'tutor' %}
+            <div class="cards-grid">
+                <div class="dashboard-card">
+                    <div class="card-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3 class="card-title">Próximas Consultas</h3>
+                        <p class="card-value">{{ agendamentos_count }}</p>
+                        <a href="#" class="card-link">Ver detalhes</a>
+                    </div>
+                </div>
+                
+                
+    <div class="dashboard-card">
+    <div class="card-icon">
+        <i class="fas fa-paw"></i>
+    </div>
+    <div class="card-content">
+        <h3 class="card-title">Meus Pets</h3>
+        <p class="card-value">{{ pets_count }}</p>
+        <!-- Alteração aqui: adicionei o link para gerenciar pets -->
+        <a href="{{ url_for('gerenciar_pets') }}" class="card-link">Gerenciar pets</a>
+    </div>
+</div>
+                
+                <div class="dashboard-card">
+                    <div class="card-icon">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3 class="card-title">Favoritos</h3>
+                        <p class="card-value">{{ favoritos_count }}</p>
+                        <a href="#" class="card-link">Ver favoritos</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Seção de médicos removida -->
+            
+            <!-- Cards for Clínica -->
+            {% if user_type == 'clinica' %}
+            <div class="cards-grid">
+                <div class="dashboard-card">
+                    <div class="card-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3 class="card-title">Consultas Agendadas</h3>
+                        <p class="card-value">{{ agendamentos_count }}</p>
+                        <a href="#" class="card-link">Ver agenda</a>
+                    </div>
+                </div>
+                
+                <div class="dashboard-card">
+                    <div class="card-icon">
+                        <i class="fas fa-user-md"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3 class="card-title">Médicos Associados</h3>
+                        <p class="card-value">{{ medicos_count }}</p>
+                        <a href="#" class="card-link">Ver médicos</a>
+                    </div>
+                </div>
+                
+                <div class="dashboard-card">
+                    <div class="card-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="card-content">
+                        <h3 class="card-title">Estatísticas</h3>
+                        <p class="card-value">Ver dados</p>
+                        <a href="#" class="card-link">Acessar</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </section>
+        
+        <!-- Recent Activity Section -->
+        <section class="recent-activity">
+            <h2 class="section-title">Atividades Recentes</h2>
+            <div class="activity-list">
+                {% if activities|length > 0 %}
+                    {% for activity in activities %}
+                    <div class="activity-item">
+                        <div class="activity-icon">
+                            <i class="{{ activity.icon }}"></i>
+                        </div>
+                        <div class="activity-content">
+                            <p class="activity-text">{{ activity.text }}</p>
+                            <p class="activity-date">{{ activity.date }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-info-circle"></i>
+                    <p>Nenhuma atividade recente para mostrar.</p>
+                </div>
+                {% endif %}
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-logo">
+                <img src="../img/WhatsApp Image 2024-09-26 at 13.36.23 (1).jpeg" alt="VetBooking Logo">
+                <span class="logo-text">VetBooking</span>
+            </div>
+            <div class="footer-links">
+                <div class="footer-column">
+                    <h3 class="footer-title">Sobre</h3>
+                    <a href="#" class="footer-link">Quem Somos</a>
+                    <a href="#" class="footer-link">Como Funciona</a>
+                    <a href="#" class="footer-link">Termos de Uso</a>
+                    <a href="#" class="footer-link">Privacidade</a>
+                </div>
+                <div class="footer-column">
+                    <h3 class="footer-title">Para Profissionais</h3>
+                    <a href="cadastro-clinica.html" class="footer-link">Cadastre sua Clínica</a>
+                    <a href="#" class="footer-link">Planos e Preços</a>
+                </div>
+                <div class="footer-column">
+                    <h3 class="footer-title">Contato</h3>
+                    <a href="#" class="footer-link">Fale Conosco</a>
+                    <a href="#" class="footer-link">Suporte</a>
+                    <a href="#" class="footer-link">FAQ</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 VetBooking. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Toggle user dropdown menu
+        document.addEventListener('DOMContentLoaded', function() {
+            const userMenu = document.querySelector('.user-menu');
+            if (userMenu) {
+                userMenu.addEventListener('click', function(e) {
+                    this.classList.toggle('active');
+                    e.stopPropagation();
+                });
+            }
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function() {
+                if (userMenu) {
+                    userMenu.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+/* Estilos para o mapa e componentes relacionados */
+
+.map-container {
+    width: 100%;
+    height: 300px;
+    margin-top: var(--spacing-lg);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-md);
+    z-index: 1;
+}
+
+.location-button {
+    display: block;
+    background-color: var(--white);
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    margin-top: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.location-button:hover {
+    background-color: var(--primary-light);
+    color: var(--white);
+}
+
+.location-button i {
+    margin-right: var(--spacing-xs);
+}
+
+/* Estilos responsivos */
+@media (max-width: 768px) {
+    .map-container {
+        height: 250px;
+    }
+}
+
+@media (max-width: 480px) {
+    .map-container {
+        height: 200px;
+    }
+}

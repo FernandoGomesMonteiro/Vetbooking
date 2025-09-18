@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Tutor - Crie sua conta</title>
+    <link rel="stylesheet" href="../styles/cadastro-tutor-new.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header/Navbar -->
+    <header class="header">
+        <div class="navbar">
+            <a href="../index.html" class="logo">
+                <img src="../img/Imagem do WhatsApp de 2025-09-17 à(s) 15.28.08_75e67870.jpg" alt="PetBooking Logo">
+                <span class="logo-text">PetBooking</span>
+            </a>
+            <div class="nav-links">
+                <a href="../index.html" class="nav-link">Página Inicial</a>
+                <a href="#" class="nav-link">Clínicas</a>
+                <a href="#" class="nav-link">Como Funciona</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Container Principal -->
+    <div class="container">
+        <div class="form-cadastro-tutor">
+            <div class="form-header">
+                <h1>Cadastro de Tutor</h1>
+                <p class="form-description">Crie sua conta para agendar consultas nas melhores clínicas e acompanhar a saúde dos seus pets</p>
+            </div>
+
+            <!-- Barra de Progresso -->
+            <div class="progress-bar">
+                <div class="progress-bar-fill" style="width: 33%"></div>
+            </div>
+            
+            <form id="tutorForm" class="form" novalidate action="/submit-tutor" method="POST">
+                <!-- Etapa 1: Informações Pessoais -->
+                <div class="form-step active" data-step="1">
+                    <div class="form-group">
+                        <label for="full-name" class="form-label">Nome Completo</label>
+                        <input type="text" id="full-name" name="full-name" class="form-input" placeholder="Digite seu nome completo" required>
+                        <i class="fas fa-user input-icon"></i>
+                        <span class="error-message">Por favor, insira seu nome completo</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" id="email" name="email" class="form-input" placeholder="Digite seu email" required>
+                        <i class="fas fa-envelope input-icon"></i>
+                        <span class="error-message">Por favor, insira um email válido</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cpf" class="form-label">CPF</label>
+                        <input type="text" id="cpf" name="cpf" class="form-input" placeholder="000.000.000-00" required>
+                        <i class="fas fa-id-card input-icon"></i>
+                        <span class="error-message">Por favor, insira um CPF válido</span>
+                    </div>
+                    
+                    <!-- Campo adicionado: Data de Nascimento -->
+                    <div class="form-group">
+                        <label for="birth-date" class="form-label">Data de Nascimento</label>
+                        <input type="date" id="birth-date" name="birth-date" class="form-input" required>
+                        <i class="fas fa-calendar input-icon"></i>
+                        <span class="error-message">Por favor, insira sua data de nascimento</span>
+                    </div>
+
+                    <div class="form-navigation">
+                        <div></div>
+                        <button type="button" class="btn-next">Próximo <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <!-- Etapa 2: Endereço -->
+                <div class="form-step" data-step="2">
+                    <div class="form-group">
+                        <label for="cep" class="form-label">CEP</label>
+                        <input type="text" id="cep" name="cep" class="form-input" placeholder="00000-000" required>
+                        <i class="fas fa-map-marker-alt input-icon"></i>
+                        <span class="error-message">Por favor, insira um CEP válido</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="address" class="form-label">Endereço</label>
+                        <input type="text" id="address" name="address" class="form-input" placeholder="Rua, número" required>
+                        <i class="fas fa-home input-icon"></i>
+                        <span class="error-message">Por favor, insira seu endereço</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="complement" class="form-label">Complemento</label>
+                        <input type="text" id="complement" name="complement" class="form-input" placeholder="Apartamento, bloco, etc.">
+                        <i class="fas fa-building input-icon"></i>
+                    </div>
+                    
+                    <!-- Campos adicionados: Bairro e Telefone -->
+                    <div class="form-group">
+                        <label for="bairro" class="form-label">Bairro</label>
+                        <input type="text" id="bairro" name="bairro" class="form-input" placeholder="Seu bairro" required>
+                        <i class="fas fa-map-signs input-icon"></i>
+                        <span class="error-message">Por favor, insira seu bairro</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone" class="form-label">Telefone</label>
+                        <input type="tel" id="phone" name="phone" class="form-input" placeholder="(00) 00000-0000" required>
+                        <i class="fas fa-phone input-icon"></i>
+                        <span class="error-message">Por favor, insira seu telefone</span>
+                    </div>
+                    
+                    <!-- Campos adicionados: Cidade e Estado -->
+                    <div class="form-group">
+                        <label for="city" class="form-label">Cidade</label>
+                        <input type="text" id="city" name="city" class="form-input" placeholder="Sua cidade" required>
+                        <i class="fas fa-city input-icon"></i>
+                        <span class="error-message">Por favor, insira sua cidade</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="state" class="form-label">Estado</label>
+                        <select id="state" name="state" class="form-input" required>
+                            <option value="">Selecione</option>
+                            <option value="PR">Paraná</option>
+                            <option value="SC">Santa Catarina</option>
+                            <option value="RS">Rio Grande do Sul</option>
+                            <option value="SP">São Paulo</option>
+                            <option value="RJ">Rio de Janeiro</option>
+                            <option value="MG">Minas Gerais</option>
+                            <!-- Adicione outros estados conforme necessário -->
+                        </select>
+                        <i class="fas fa-map input-icon"></i>
+                        <span class="error-message">Por favor, selecione seu estado</span>
+                    </div>
+
+                    <div class="form-navigation">
+                        <button type="button" class="btn-prev"><i class="fas fa-arrow-left"></i> Anterior</button>
+                        <button type="button" class="btn-next">Próximo <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <!-- Etapa 3: Senha e Confirmação -->
+                <div class="form-step" data-step="3">
+                    <div class="form-group">
+                        <label for="password" class="form-label">Senha</label>
+                        <input type="password" id="password" name="password" class="form-input" placeholder="Crie uma senha segura" required>
+                        <i class="fas fa-lock input-icon"></i>
+                        <span class="error-message">A senha deve ter no mínimo 8 caracteres</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm-password" class="form-label">Confirmar Senha</label>
+                        <input type="password" id="confirm-password" name="confirm-password" class="form-input" placeholder="Confirme sua senha" required>
+                        <i class="fas fa-lock input-icon"></i>
+                        <span class="error-message">As senhas não coincidem</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" name="terms" required>
+                            Li e aceito os <a href="#">Termos de Uso</a> e <a href="#">Política de Privacidade</a>
+                        </label>
+                        <span class="error-message">Você precisa aceitar os termos para continuar</span>
+                    </div>
+
+                    <div class="form-navigation">
+                        <button type="button" class="btn-prev"><i class="fas fa-arrow-left"></i> Anterior</button>
+                        <button type="submit" class="btn-submit">Criar Conta <i class="fas fa-check"></i></button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="form-footer">
+                <p>Já possui uma conta? <a href="./login.html">Faça login</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div>
+                <div class="footer-logo">
+                    <img src="../img/WhatsApp Image 2024-09-26 at 13.36.23 (1).jpeg" alt="PetBooking Logo">
+                    <span class="footer-logo-text">PetBooking</span>
+                </div>
+                <p class="footer-description">Conectando tutores às melhores clínicas para cuidar da saúde do seu pet.</p>
+            </div>
+            
+            <div>
+                <h3 class="footer-heading">Links Rápidos</h3>
+                <ul class="footer-links">
+                    <li><a href="../index.html">Página Inicial</a></li>
+                    <li><a href="#">Buscar Clínicas</a></li>
+                    <li><a href="./login.html">Minha Conta</a></li>
+                </ul>
+            </div>
+            
+            <div>
+                <h3 class="footer-heading">Para Profissionais</h3>
+                <ul class="footer-links">
+                    <li><a href="./cadastro-clinica.html">Cadastro de Clínicas</a></li>
+                    <li><a href="#">Como Funciona</a></li>
+                </ul>
+            </div>
+            
+            <div>
+                <h3 class="footer-heading">Contato</h3>
+                <ul class="footer-links">
+                    <li><a href="mailto:contato@petbooking.com">contato@petbooking.com</a></li>
+                    <li><a href="tel:+5541999999999">(41) 99999-9999</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <p>&copy; 2024 PetBooking. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('tutorForm');
+            const steps = document.querySelectorAll('.form-step');
+            const progressBar = document.querySelector('.progress-bar-fill');
+            let currentStep = 1;
+
+            // Função para atualizar a barra de progresso
+            function updateProgressBar() {
+                const progress = (currentStep - 1) * 50;
+                progressBar.style.width = `${progress}%`;
+            }
+
+            // Função para mostrar o passo atual
+            function showStep(step) {
+                steps.forEach(s => s.classList.remove('active'));
+                document.querySelector(`[data-step="${step}"]`).classList.add('active');
+                updateProgressBar();
+            }
+
+            // Validação dos campos
+            function validateStep(step) {
+                const currentStepElement = document.querySelector(`[data-step="${step}"]`);
+                const inputs = currentStepElement.querySelectorAll('input[required], select[required]');
+                let isValid = true;
+
+                inputs.forEach(input => {
+                    if (!input.value) {
+                        isValid = false;
+                        input.classList.add('error');
+                        // Mostra a mensagem de erro
+                        const errorMessage = input.nextElementSibling.nextElementSibling;
+                        if (errorMessage && errorMessage.classList.contains('error-message')) {
+                            errorMessage.classList.add('visible');
+                        }
+                    } else {
+                        input.classList.remove('error');
+                        // Esconde a mensagem de erro
+                        const errorMessage = input.nextElementSibling.nextElementSibling;
+                        if (errorMessage && errorMessage.classList.contains('error-message')) {
+                            errorMessage.classList.remove('visible');
+                        }
+                    }
+                });
+
+                return isValid;
+            }
+
+            // Eventos dos botões
+            document.querySelectorAll('.btn-next').forEach(button => {
+                button.addEventListener('click', () => {
+                    if (validateStep(currentStep)) {
+                        currentStep++;
+                        showStep(currentStep);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.btn-prev').forEach(button => {
+                button.addEventListener('click', () => {
+                    currentStep--;
+                    showStep(currentStep);
+                });
+            });
+
+            // Validação do formulário no envio
+            form.addEventListener('submit', function(e) {
+                // Valida a etapa atual antes de enviar
+                if (!validateStep(currentStep)) {
+                    e.preventDefault();
+                }
+            });
+
+            // Máscara para CPF
+            const cpfInput = document.getElementById('cpf');
+            cpfInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length <= 11) {
+                    value = value.replace(/^(\d{3})(\d{3})(\d{3})(\d{2}).*/, '$1.$2.$3-$4');
+                    e.target.value = value;
+                }
+            });
+
+            // Máscara para CEP
+            const cepInput = document.getElementById('cep');
+            cepInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length <= 8) {
+                    value = value.replace(/^(\d{5})(\d{3}).*/, '$1-$2');
+                    e.target.value = value;
+                }
+            });
+            
+            // Máscara para Telefone
+            const phoneInput = document.getElementById('phone');
+            phoneInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length > 11) value = value.substring(0, 11);
+                
+                if (value.length > 2) {
+                    value = `(${value.substring(0,2)}) ${value.substring(2)}`;
+                }
+                if (value.length > 10) {
+                    value = value.substring(0,10) + '-' + value.substring(10);
+                }
+                e.target.value = value;
+            });
+            
+            // Busca automática de endereço pelo CEP
+            cepInput.addEventListener('blur', function() {
+                const cep = this.value.replace(/\D/g, '');
+                if (cep.length === 8) {
+                    fetch(`https://viacep.com.br/ws/${cep}/json/`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (!data.erro) {
+                                document.getElementById('address').value = data.logradouro || '';
+                                document.getElementById('bairro').value = data.bairro || '';
+                                document.getElementById('city').value = data.localidade || '';
+                                document.getElementById('state').value = data.uf || '';
+                            }
+                        })
+                        .catch(error => console.error('Erro ao buscar CEP:', error));
+                }
+            });
+        });
+    </script>
+</body>
+</html>

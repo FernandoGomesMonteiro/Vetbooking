@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro - Escolha seu tipo de perfil</title>
+    <link rel="stylesheet" href="../styles/base.css">
+    <link rel="stylesheet" href="../styles/cadastro.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header/Navbar -->
+    <header class="header">
+        <div class="navbar">
+            <a href="../index.html" class="logo">
+                <img src="./img/Imagem do WhatsApp de 2025-09-17 à(s) 15.28.08_75e67870.jpg"alt="PetBooking Logo">
+                <span class="logo-text">PetBooking</span>
+            </a>
+            <div class="nav-links">
+                <a href="../index.html" class="nav-link">Página Inicial</a>
+                <a href="#" class="nav-link">Clínicas</a>
+                <a href="#" class="nav-link">Como Funciona</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Cadastro Container -->
+    <div class="cadastro-container">
+        <div class="cadastro-header">
+            <h1>Escolha seu tipo de cadastro</h1>
+            <p>Selecione o perfil que melhor se adequa a você</p>
+        </div>
+        
+        <div class="options-container">
+            <div class="option-card" onclick="window.location.href='/pages/cadastro-tutor-new.html'">
+                <div class="option-icon">
+                    <i class="fas fa-user"></i>
+                </div>
+                <h3>Sou Tutor</h3>
+                <p>Cadastre-se como tutor para agendar consultas para seus pets</p>
+                <div class="option-features">
+                    <div class="feature">
+                        <i class="fas fa-check"></i>
+                        <span>Agende consultas online</span>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-check"></i>
+                        <span>Histórico médico dos pets</span>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-check"></i>
+                        <span>Avalie profissionais</span>
+                    </div>
+                </div>
+                <button class="option-button">Cadastrar como Tutor</button>
+            </div>
+            
+
+            
+            <div class="option-card" onclick="window.location.href='/pages/cadastro-clinica.html'">
+                <div class="option-icon">
+                    <i class="fas fa-hospital"></i>
+                </div>
+                <h3>Sou Clínica</h3>
+                <p>Cadastre sua clínica na plataforma</p>
+                <div class="option-features">
+                    <div class="feature">
+                        <i class="fas fa-check"></i>
+                        <span>Gerencie profissionais e horários</span>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-check"></i>
+                        <span>Aumente sua visibilidade</span>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-check"></i>
+                        <span>Receba agendamentos online</span>
+                    </div>
+                </div>
+                <button class="option-button">Cadastrar Clínica</button>
+            </div>
+        </div>
+        
+        <div class="cadastro-footer">
+            <p>Já possui uma conta? <a href="./login.html">Faça login</a></p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div>
+                <div class="footer-logo">
+                    <img src="../img/WhatsApp Image 2024-09-26 at 13.36.23 (1).jpeg" alt="PetBooking Logo">
+                    <span class="footer-logo-text">PetBooking</span>
+                </div>
+                <p class="footer-description">Conectando tutores às melhores clínicas para cuidar da saúde do seu pet.</p>
+            </div>
+            
+            <div>
+                <h3 class="footer-heading">Links Rápidos</h3>
+                <ul class="footer-links">
+                    <li class="footer-link"><a href="../index.html">Página Inicial</a></li>
+                    <li class="footer-link"><a href="#">Buscar Clínicas</a></li>
+                    <li class="footer-link"><a href="./login.html">Minha Conta</a></li>
+                </ul>
+            </div>
+            
+            <div>
+                <h3 class="footer-heading">Para Profissionais</h3>
+                <ul class="footer-links">
+                    <li class="footer-link"><a href="./cadastro-clinica.html">Cadastro de Clínicas</a></li>
+                    <li class="footer-link"><a href="#">Como Funciona</a></li>
+                </ul>
+            </div>
+            
+            <div>
+                <h3 class="footer-heading">Contato</h3>
+                <ul class="footer-links">
+                    <li class="footer-link"><a href="mailto:contato@petbooking.com">contato@petbooking.com</a></li>
+                    <li class="footer-link"><a href="tel:+5541999999999">(41) 99999-9999</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <p>&copy; 2024 PetBooking. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+    <script src="../script.js"></script>
+</body>
+</html>

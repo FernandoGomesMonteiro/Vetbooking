@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Veterinário - PetBooking</title>
+    <link rel="stylesheet" href="../styles/cadastro-veterinario.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header/Navbar -->
+    <header class="header">
+        <div class="navbar">
+            <a href="../index.html" class="logo">
+                <img src="./img/Imagem do WhatsApp de 2025-09-17 à(s) 15.28.08_75e67870.jpg" alt="PetBooking Logo">
+                <span class="logo-text">PetBooking</span>
+            </a>
+            <div class="nav-links">
+                <a href="../index.html" class="nav-link">Página Inicial</a>
+                <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+                <a href="#" class="nav-link">Veterinários</a>
+            </div>
+            <div class="burger">
+                <div class="line1"></div>
+                <div class="line2"></div>
+                <div class="line3"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Container Principal -->
+    <div class="container">
+        <div class="form-container">
+            <form id="veterinarioForm" class="form-cadastro" enctype="multipart/form-data">
+                <!-- Cabeçalho do Formulário -->
+                <div class="form-header">
+                    <h1>Cadastro de Veterinário</h1>
+                    <p class="form-subtitle">Preencha os dados para cadastrar um novo veterinário na plataforma</p>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill"></div>
+                    </div>
+                    <div class="progress-steps">
+                        <span class="step active" data-step="1">Dados Pessoais</span>
+                        <span class="step" data-step="2">Documentação</span>
+                        <span class="step" data-step="3">Especialidades</span>
+                    </div>
+                </div>
+
+                <!-- Step 1: Dados Pessoais -->
+                <div class="form-step active" data-step="1">
+                    <h2>Dados Pessoais</h2>
+                    
+                    <div class="form-group">
+                        <label for="nome">Nome Completo *</label>
+                        <input type="text" id="nome" name="nome" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="email">Email *</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="telefone">Telefone *</label>
+                            <input type="tel" id="telefone" name="telefone" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="senha">Senha *</label>
+                            <input type="password" id="senha" name="senha" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmar_senha">Confirmar Senha *</label>
+                            <input type="password" id="confirmar_senha" name="confirmar_senha" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="foto">Foto do Veterinário</label>
+                        <div class="file-upload">
+                            <input type="file" id="foto" name="foto" accept="image/*">
+                            <label for="foto" class="file-upload-label">
+                                <i class="fas fa-upload"></i>
+                                <span>Escolher foto</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Documentação -->
+                <div class="form-step" data-step="2">
+                    <h2>Documentação Profissional</h2>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="crmv">CRMV *</label>
+                            <input type="text" id="crmv" name="crmv" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="uf_crmv">UF do CRMV *</label>
+                            <select id="uf_crmv" name="uf_crmv" required>
+                                <option value="">Selecione o estado</option>
+                                <option value="AC">Acre</option>
+                                <option value="AL">Alagoas</option>
+                                <option value="AP">Amapá</option>
+                                <option value="AM">Amazonas</option>
+                                <option value="BA">Bahia</option>
+                                <option value="CE">Ceará</option>
+                                <option value="DF">Distrito Federal</option>
+                                <option value="ES">Espírito Santo</option>
+                                <option value="GO">Goiás</option>
+                                <option value="MA">Maranhão</option>
+                                <option value="MT">Mato Grosso</option>
+                                <option value="MS">Mato Grosso do Sul</option>
+                                <option value="MG">Minas Gerais</option>
+                                <option value="PA">Pará</option>
+                                <option value="PB">Paraíba</option>
+                                <option value="PR">Paraná</option>
+                                <option value="PE">Pernambuco</option>
+                                <option value="PI">Piauí</option>
+                                <option value="RJ">Rio de Janeiro</option>
+                                <option value="RN">Rio Grande do Norte</option>
+                                <option value="RS">Rio Grande do Sul</option>
+                                <option value="RO">Rondônia</option>
+                                <option value="RR">Roraima</option>
+                                <option value="SC">Santa Catarina</option>
+                                <option value="SP">São Paulo</option>
+                                <option value="SE">Sergipe</option>
+                                <option value="TO">Tocantins</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="documento_crmv">Documento do CRMV</label>
+                        <div class="file-upload">
+                            <input type="file" id="documento_crmv" name="documento_crmv" accept=".pdf,.jpg,.jpeg,.png">
+                            <label for="documento_crmv" class="file-upload-label">
+                                <i class="fas fa-upload"></i>
+                                <span>Enviar documento</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="outros_documentos">Outros Documentos</label>
+                        <div class="file-upload">
+                            <input type="file" id="outros_documentos" name="outros_documentos" multiple accept=".pdf,.jpg,.jpeg,.png">
+                            <label for="outros_documentos" class="file-upload-label">
+                                <i class="fas fa-upload"></i>
+                                <span>Enviar documentos</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Especialidades -->
+                <div class="form-step" data-step="3">
+                    <h2>Especialidades e Serviços</h2>
+                    
+                    <div class="form-group">
+                        <label>Especialidades *</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="clinica_geral" name="especialidades[]" value="Clínica Geral">
+                                <label for="clinica_geral">Clínica Geral</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="cirurgia" name="especialidades[]" value="Cirurgia">
+                                <label for="cirurgia">Cirurgia</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="dermatologia" name="especialidades[]" value="Dermatologia">
+                                <label for="dermatologia">Dermatologia</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="cardiologia" name="especialidades[]" value="Cardiologia">
+                                <label for="cardiologia">Cardiologia</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="oftalmologia" name="especialidades[]" value="Oftalmologia">
+                                <label for="oftalmologia">Oftalmologia</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="ortopedia" name="especialidades[]" value="Ortopedia">
+                                <label for="ortopedia">Ortopedia</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="neurologia" name="especialidades[]" value="Neurologia">
+                                <label for="neurologia">Neurologia</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="anestesiologia" name="especialidades[]" value="Anestesiologia">
+                                <label for="anestesiologia">Anestesiologia</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="outras_especialidades">Outras Especialidades</label>
+                        <input type="text" id="outras_especialidades" name="outras_especialidades" placeholder="Descreva outras especialidades não listadas acima">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="descricao">Descrição Profissional</label>
+                        <textarea id="descricao" name="descricao" rows="4" placeholder="Descreva sua experiência profissional, formação e áreas de atuação"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="clinica_id">Clínica Vinculada *</label>
+                        <select id="clinica_id" name="clinica_id" required>
+                            <option value="">Selecione uma clínica</option>
+                            {% for clinica in clinicas %}
+                            <option value="{{ clinica.clinica_id }}">{{ clinica.razao_social }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Botões de Navegação -->
+                <div class="form-navigation">
+                    <button type="button" id="btn-anterior" class="btn-secondary" style="display: none;">
+                        <i class="fas fa-arrow-left"></i> Anterior
+                    </button>
+                    <button type="button" id="btn-proximo" class="btn-primary">
+                        Próximo <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <button type="submit" id="btn-salvar" class="btn-success" style="display: none;">
+                        <i class="fas fa-save"></i> Cadastrar Veterinário
+                    </button>
+                </div>
+
+                <!-- Mensagem de Erro/Sucesso -->
+                <div id="mensagem" class="mensagem" style="display: none;"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div>
+                <div class="footer-logo">
+                    <img src="../img/WhatsApp Image 2024-09-26 at 13.36.23 (1).jpeg" alt="PetBooking Logo">
+                    <span class="footer-logo-text">PetBooking</span>
+                </div>
+                <p class="footer-description">Conectando tutores às melhores clínicas para cuidar da saúde do seu pet.</p>
+            </div>
+            
+            <div>
+                <h3 class="footer-heading">Links Rápidos</h3>
+                <ul class="footer-links">
+                    <li><a href="../index.html">Página Inicial</a></li>
+                    <li><a href="catalogo-clinicas.html">Buscar Clínicas</a></li>
+                    <li><a href="login.html">Minha Conta</a></li>
+                </ul>
+            </div>
+            
+            <div>
+                <h3 class="footer-heading">Para Profissionais</h3>
+                <ul class="footer-links">
+                    <li><a href="cadastro-clinica.html">Cadastro de Clínicas</a></li>
+                    <li><a href="cadastro-veterinario.html">Cadastro de Veterinários</a></li>
+                    <li><a href="#">Como Funciona</a></li>
+                </ul>
+            </div>
+            
+            <div>
+                <h3 class="footer-heading">Contato</h3>
+                <ul class="footer-links">
+                    <li><a href="mailto:contato@petbooking.com">contato@petbooking.com</a></li>
+                    <li><a href="tel:+5541999999999">(41) 99999-9999</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <p>&copy; 2024 PetBooking. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="../script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('veterinarioForm');
+            const steps = document.querySelectorAll('.form-step');
+            const progressBar = document.querySelector('.progress-bar-fill');
+            const stepIndicators = document.querySelectorAll('.step');
+            let currentStep = 1;
+
+            // Botões de navegação
+            const btnAnterior = document.getElementById('btn-anterior');
+            const btnProximo = document.getElementById('btn-proximo');
+            const btnSalvar = document.getElementById('btn-salvar');
+
+            // Função para atualizar a barra de progresso
+            function updateProgressBar() {
+                const progress = ((currentStep - 1) / (steps.length - 1)) * 100;
+                progressBar.style.width = `${progress}%`;
+                
+                // Atualizar indicadores de etapa
+                stepIndicators.forEach((step, index) => {
+                    if (index < currentStep) {
+                        step.classList.add('active');
+                    } else {
+                        step.classList.remove('active');
+                    }
+                });
+            }
+
+            // Função para mostrar o passo atual
+            function showStep(step) {
+                steps.forEach(s => s.classList.remove('active'));
+                document.querySelector(`[data-step="${step}"]`).classList.add('active');
+                
+                // Atualizar botões
+                if (step === 1) {
+                    btnAnterior.style.display = 'none';
+                    btnProximo.style.display = 'inline-block';
+                    btnSalvar.style.display = 'none';
+                } else if (step === steps.length) {
+                    btnAnterior.style.display = 'inline-block';
+                    btnProximo.style.display = 'none';
+                    btnSalvar.style.display = 'inline-block';
+                } else {
+                    btnAnterior.style.display = 'inline-block';
+                    btnProximo.style.display = 'inline-block';
+                    btnSalvar.style.display = 'none';
+                }
+                
+                updateProgressBar();
+            }
+
+            // Navegação entre etapas
+            btnProximo.addEventListener('click', function() {
+                if (validateStep(currentStep)) {
+                    if (currentStep < steps.length) {
+                        currentStep++;
+                        showStep(currentStep);
+                    }
+                }
+            });
+
+            btnAnterior.addEventListener('click', function() {
+                if (currentStep > 1) {
+                    currentStep--;
+                    showStep(currentStep);
+                }
+            });
+
+            // Validação por etapa
+            function validateStep(step) {
+                const currentStepElement = document.querySelector(`[data-step="${step}"]`);
+                const requiredFields = currentStepElement.querySelectorAll('[required]');
+                let isValid = true;
+                let firstInvalidField = null;
+
+                requiredFields.forEach(field => {
+                    if (!field.value.trim()) {
+                        field.classList.add('error');
+                        isValid = false;
+                        if (!firstInvalidField) {
+                            firstInvalidField = field;
+                        }
+                    } else {
+                        field.classList.remove('error');
+                    }
+                });
+
+                // Validações específicas por etapa
+                if (step === 1) {
+                    // Validar email
+                    const email = document.getElementById('email').value;
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(email)) {
+                        document.getElementById('email').classList.add('error');
+                        isValid = false;
+                    }
+
+                    // Validar senhas
+                    const senha = document.getElementById('senha').value;
+                    const confirmarSenha = document.getElementById('confirmar_senha').value;
+                    if (senha !== confirmarSenha) {
+                        document.getElementById('senha').classList.add('error');
+                        document.getElementById('confirmar_senha').classList.add('error');
+                        showMessage('As senhas não coincidem!', 'error');
+                        isValid = false;
+                    }
+                }
+
+                if (step === 3) {
+                    // Validar pelo menos uma especialidade
+                    const especialidades = document.querySelectorAll('input[name="especialidades[]"]:checked');
+                    if (especialidades.length === 0) {
+                        showMessage('Selecione pelo menos uma especialidade!', 'error');
+                        isValid = false;
+                    }
+                }
+
+                if (!isValid && firstInvalidField) {
+                    firstInvalidField.focus();
+                    showMessage('Por favor, preencha todos os campos obrigatórios!', 'error');
+                }
+
+                return isValid;
+            }
+
+            // Envio do formulário
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                if (validateStep(currentStep)) {
+                    const formData = new FormData(form);
+                    
+                    // Desabilitar botão de salvar
+                    btnSalvar.disabled = true;
+                    btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cadastrando...';
+                    
+                    fetch('/cadastrar-veterinario', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showMessage('Veterinário cadastrado com sucesso!', 'success');
+                            setTimeout(() => {
+                                window.location.href = data.redirect || '{{ url_for("dashboard") }}';
+                            }, 2000);
+                        } else {
+                            showMessage(data.message || 'Erro ao cadastrar veterinário!', 'error');
+                            btnSalvar.disabled = false;
+                            btnSalvar.innerHTML = '<i class="fas fa-save"></i> Cadastrar Veterinário';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro:', error);
+                        showMessage('Erro ao conectar com o servidor!', 'error');
+                        btnSalvar.disabled = false;
+                        btnSalvar.innerHTML = '<i class="fas fa-save"></i> Cadastrar Veterinário';
+                    });
+                }
+            });
+
+            // Função para mostrar mensagens
+            function showMessage(message, type) {
+                const mensagemDiv = document.getElementById('mensagem');
+                mensagemDiv.textContent = message;
+                mensagemDiv.className = `mensagem ${type}`;
+                mensagemDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    mensagemDiv.style.display = 'none';
+                }, 5000);
+            }
+
+            // Preview de upload de arquivos
+            document.querySelectorAll('input[type="file"]').forEach(input => {
+                input.addEventListener('change', function(e) {
+                    const label = e.target.nextElementSibling;
+                    const fileName = e.target.files.length > 1 
+                        ? `${e.target.files.length} arquivos selecionados`
+                        : e.target.files[0].name;
+                    label.querySelector('span').textContent = fileName;
+                });
+            });
+
+            // Inicializar
+            updateProgressBar();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendar Consulta - PetBooking</title>
+    <link rel="stylesheet" href="../styles/agendar-consultas.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <!-- Header/Navbar -->
+    <header class="header">
+        <div class="navbar">
+            <a href="{{ url_for('index') }}" class="logo">
+               <img src="./img/Imagem do WhatsApp de 2025-09-17 à(s) 15.28.08_75e67870.jpg" alt="PetBooking Logo">
+                <span class="logo-text">PetBooking</span>
+            </a>
+            <div class="nav-links">
+                <a href="{{ url_for('index') }}">Página Inicial</a>
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('logout') }}">Sair</a>
+            </div>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="form-agendar-consulta">
+            <div class="form-header">
+                <h1>Agendar Consulta</h1>
+                <p class="form-description">Preencha os dados para agendar uma consulta para seu pet</p>
+            </div>
+            <form id="agendarConsultaForm" class="form" novalidate>
+                <!-- Selecione o Pet -->
+                <div class="form-group">
+                    <label for="pet" class="form-label">Selecione seu Pet</label>
+                    <select id="pet" name="pet_id" class="form-input" required>
+                        <option value="">Selecione um pet</option>
+                        {% for pet in pets %}
+                        <option value="{{ pet.pet_id }}" 
+                                data-especie="{{ pet.especie }}" 
+                                data-raca="{{ pet.raca or '' }}" 
+                                data-sexo="{{ pet.sexo or '' }}"
+                                data-peso="{{ pet.peso or '' }}"
+                                data-nascimento="{{ pet.data_nascimento or '' }}">
+                            {{ pet.nome_pet }} ({{ pet.especie }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Informações do Pet Selecionado -->
+                <div id="pet-info" class="pet-info-card" style="display: none;">
+                    <h4>Informações do Pet</h4>
+                    <div class="pet-details">
+                        <p><strong>Espécie:</strong> <span id="pet-especie"></span></p>
+                        <p><strong>Raça:</strong> <span id="pet-raca"></span></p>
+                        <p><strong>Sexo:</strong> <span id="pet-sexo"></span></p>
+                        <p><strong>Peso:</strong> <span id="pet-peso"></span></p>
+                        <p><strong>Data de Nascimento:</strong> <span id="pet-nascimento"></span></p>
+                    </div>
+                </div>
+                
+                <!-- Selecione a Clínica -->
+                <div class="form-group">
+                    <label for="clinica" class="form-label">Clínica</label>
+                    <select id="clinica" name="clinica_id" class="form-input" required>
+                        <option value="">Selecione uma clínica</option>
+                        {% for clinica in clinicas %}
+                        <option value="{{ clinica.clinica_id }}">{{ clinica.razao_social }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Selecione o Profissional (opcional) -->
+                <div class="form-group">
+                    <label for="profissional" class="form-label">Profissional (opcional)</label>
+                    <select id="profissional" name="profissional_id" class="form-input" disabled>
+                        <option value="">Selecione uma clínica primeiro</option>
+                    </select>
+                </div>
+                
+                <!-- Data e Hora -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="data-consulta" class="form-label">Data</label>
+                        <input type="date" id="data-consulta" name="data_consulta" class="form-input" required min="{{ hoje }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="hora-consulta" class="form-label">Horário</label>
+                        <select id="hora-consulta" name="hora_consulta" class="form-input" required>
+                            <option value="">Selecione</option>
+                            {% for hora in horas_disponiveis %}
+                            <option value="{{ hora }}">{{ hora }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Observações -->
+                <div class="form-group">
+                    <label for="observacoes" class="form-label">Observações</label>
+                    <textarea id="observacoes" name="observacoes" class="form-input" placeholder="Descreva sintomas ou observações relevantes"></textarea>
+                </div>
+                
+                <div class="form-navigation">
+                    <button type="submit" class="btn-submit">
+                        <i class="fas fa-calendar-check"></i> Agendar Consulta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <footer class="footer">
+        <!-- ... (código do footer existente) ... -->
+    </footer>
+    
+    <script>
+        $(document).ready(function() {
+            // Obter a data de hoje no formato YYYY-MM-DD
+            const hoje = new Date().toISOString().split('T')[0];
+            $('#data-consulta').attr('min', hoje);
+            
+            // Função para carregar dados do pet selecionado
+            function carregarDadosPet(petId) {
+                if (petId) {
+                    console.log('Pet selecionado ID:', petId);
+                    
+                    // Obter os dados do option selecionado
+                    const optionSelecionado = $(`#pet option[value="${petId}"]`);
+                    const especie = optionSelecionado.data('especie');
+                    const raca = optionSelecionado.data('raca');
+                    const sexo = optionSelecionado.data('sexo');
+                    const peso = optionSelecionado.data('peso');
+                    const nascimento = optionSelecionado.data('nascimento');
+                    
+                    // Preencher a div de informações do pet
+                    $('#pet-especie').text(especie || 'Não informado');
+                    $('#pet-raca').text(raca || 'Não informado');
+                    $('#pet-sexo').text(sexo || 'Não informado');
+                    $('#pet-peso').text(peso ? peso + ' kg' : 'Não informado');
+                    $('#pet-nascimento').text(nascimento || 'Não informado');
+                    
+                    // Mostrar a div de informações
+                    $('#pet-info').show();
+                } else {
+                    // Esconder a div se nenhum pet for selecionado
+                    $('#pet-info').hide();
+                }
+            }
+            
+            // Quando um pet é selecionado
+            $('#pet').change(function() {
+                const petId = $(this).val();
+                carregarDadosPet(petId);
+            });
+            
+            // Se já houver um pet selecionado (ex: vindo de outra página), carregar seus dados
+            const petSelecionado = $('#pet').val();
+            if (petSelecionado) {
+                carregarDadosPet(petSelecionado);
+            }
+            
+            // Verificar se existem pets cadastrados
+            const totalPets = $('#pet option').length - 1; // Descontar o option "Selecione um pet"
+            if (totalPets === 0) {
+                alert('Você não tem nenhum pet cadastrado. Por favor, cadastre um pet primeiro.');
+                window.location.href = '{{ url_for("gerenciar_pets") }}';
+            } else if (totalPets === 1) {
+                // Se houver apenas um pet, selecioná-lo automaticamente
+                $('#pet option:eq(1)').prop('selected', true);
+                carregarDadosPet($('#pet').val());
+            }
+            
+            // Quando uma clínica é selecionada, buscar seus profissionais
+            $('#clinica').change(function() {
+                const clinicaId = $(this).val();
+                if (clinicaId) {
+                    $('#profissional').prop('disabled', false);
+                    
+                    $.getJSON(`/get-profissionais-da-clinica/${clinicaId}`, function(profissionais) {
+                        const profSelect = $('#profissional');
+                        profSelect.empty().append('<option value="">Selecione um profissional (opcional)</option>');
+                        
+                        profissionais.forEach(profissional => {
+                            profSelect.append(`<option value="${profissional.profissional_id}">${profissional.nome_profissional}</option>`);
+                        });
+                    }).fail(function() {
+                        alert('Erro ao carregar profissionais da clínica.');
+                    });
+                } else {
+                    $('#profissional').prop('disabled', true).val('');
+                }
+            });
+            
+            // Validação do formulário antes do envio
+            function validarFormulario() {
+                const petId = $('#pet').val();
+                const clinicaId = $('#clinica').val();
+                const dataConsulta = $('#data-consulta').val();
+                const horaConsulta = $('#hora-consulta').val();
+                
+                if (!petId) {
+                    alert('Por favor, selecione um pet.');
+                    $('#pet').focus();
+                    return false;
+                }
+                
+                if (!clinicaId) {
+                    alert('Por favor, selecione uma clínica.');
+                    $('#clinica').focus();
+                    return false;
+                }
+                
+                if (!dataConsulta) {
+                    alert('Por favor, selecione uma data para a consulta.');
+                    $('#data-consulta').focus();
+                    return false;
+                }
+                
+                if (!horaConsulta) {
+                    alert('Por favor, selecione um horário para a consulta.');
+                    $('#hora-consulta').focus();
+                    return false;
+                }
+                
+                // Verificar se a data é futura
+                const dataSelecionada = new Date(dataConsulta + 'T' + horaConsulta);
+                const agora = new Date();
+                
+                if (dataSelecionada <= agora) {
+                    alert('A data e horário da consulta devem ser futuros.');
+                    return false;
+                }
+                
+                return true;
+            }
+            
+            // Enviar o formulário
+            $('#agendarConsultaForm').submit(function(e) {
+                e.preventDefault();
+                
+                // Validar formulário
+                if (!validarFormulario()) {
+                    return;
+                }
+                
+                // Coletar dados do formulário
+                const formData = $(this).serialize();
+                
+                // Desabilitar botão de submit para evitar duplo clique
+                const submitBtn = $('.btn-submit');
+                const btnOriginalText = submitBtn.html();
+                submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Agendando...');
+                
+                // Enviar para o servidor
+                $.ajax({
+                    type: 'POST',
+                    url: '/salvar-agendamento',
+                    data: formData,
+                    success: function(response) {
+                        if (response.success) {
+                            alert(response.message || 'Consulta agendada com sucesso!');
+                            window.location.href = '{{ url_for("dashboard") }}';
+                        } else {
+                            alert('Erro: ' + (response.message || 'Erro ao agendar consulta.'));
+                            submitBtn.prop('disabled', false).html(btnOriginalText);
+                        }
+                    },
+                    error: function(xhr) {
+                        let mensagem = 'Erro ao processar sua solicitação. Tente novamente.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            mensagem = xhr.responseJSON.message;
+                        }
+                        alert(mensagem);
+                        submitBtn.prop('disabled', false).html(btnOriginalText);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+/* Estilos para a página de Edição de Perfil */
+
+/* Seção de edição de perfil */
+.edit-profile-section {
+    margin-bottom: var(--spacing-xl);
+}
+
+.edit-profile-card {
+    background-color: var(--white);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Formulário de edição */
+.edit-profile-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+}
+
+/* Alguns campos ocupam a linha inteira */
+.edit-profile-form .form-group:nth-child(5),
+.edit-profile-form .form-group:nth-child(6),
+.edit-profile-form .form-group:nth-child(7),
+.edit-profile-form .form-group:nth-child(8),
+.edit-profile-form .form-actions {
+    grid-column: 1 / -1;
+}
+
+/* Para o formulário de médico, o campo de descrição ocupa linha inteira */
+.edit-profile-form textarea {
+    grid-column: 1 / -1;
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* Botões de ação */
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .edit-profile-form {
+        grid-template-columns: 1fr;
+    }
+}
