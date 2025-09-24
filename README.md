@@ -1,8 +1,8 @@
 <div align="center">
 
-# PetBooking 🐾
+# VetBooking 🐾
 
-![Logo PetBooking](img/WhatsApp%20Image%202024-09-26%20at%2013.36.23%20(1).jpeg)
+![Logo VetBooking](img/WhatsApp%20Image%202024-09-26%20at%2013.36.23%20(1).jpeg)
 
 *Conectando tutores às melhores clínicas para cuidar do seu pet*
 
