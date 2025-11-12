@@ -158,6 +158,377 @@ def adicionar_pet():
         cursor.close()
         conn.close()
 
+# Rota para cadastro de veterinário
+@app.route('/cadastrar-veterinario', methods=['POST'])
+def cadastrar_veterinario():
+    try:
+        # Obter dados do formulário
+        nome = request.form['nome']
+        email = request.form['email']
+        telefone = request.form['telefone']
+        senha = request.form['senha']
+        crmv = request.form['crmv']
+        uf_crmv = request.form['uf_crmv']
+        clinica_id = request.form['clinica_id']
+        descricao = request.form.get('descricao', '')
+        outras_especialidades = request.form.get('outras_especialidades', '')
+        
+        # Processar especialidades (checkboxes)
+        especialidades = request.form.getlist('especialidades[]')
+        especialidades_str = ','.join(especialidades)
+        if outras_especialidades:
+            if especialidades_str:
+                especialidades_str += ',' + outras_especialidades
+            else:
+                especialidades_str = outras_especialidades
+        
+        # Hash da senha
+        senha_hash = generate_password_hash(senha)
+        
+        # Processar foto do veterinário
+        foto = None
+        if 'foto' in request.files:
+            file = request.files['foto']
+            if file.filename != '' and allowed_file(file.filename):
+                filename = secure_filename(f"vet_{uuid.uuid4().hex}.{file.filename.rsplit('.', 1)[1].lower()}")
+                file_path = os.path.join('static/uploads/veterinarios', filename)
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                file.save(file_path)
+                foto = filename
+        
+        # Processar documento CRMV
+        documento_crmv = None
+        if 'documento_crmv' in request.files:
+            file = request.files['documento_crmv']
+            if file.filename != '':
+                filename = secure_filename(f"crmv_{uuid.uuid4().hex}.{file.filename.rsplit('.', 1)[1].lower()}")
+                file_path = os.path.join('static/uploads/documentos', filename)
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                file.save(file_path)
+                documento_crmv = filename
+        
+        # Conectar ao banco de dados
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Verificar se o email já está cadastrado
+        cursor.execute('SELECT 1 FROM usuarios WHERE email = %s', (email,))
+        if cursor.fetchone():
+            return jsonify({'success': False, 'message': 'Este email já está cadastrado'})
+        
+        # Verificar se o CRMV já está cadastrado
+        cursor.execute('SELECT 1 FROM veterinarios WHERE crmv = %s AND uf_crmv = %s', (crmv, uf_crmv))
+        if cursor.fetchone():
+            return jsonify({'success': False, 'message': 'Este CRMV já está cadastrado'})
+        
+        # Verificar se a clínica existe
+        cursor.execute('SELECT 1 FROM clinicas WHERE clinica_id = %s', (clinica_id,))
+        if not cursor.fetchone():
+            return jsonify({'success': False, 'message': 'Clínica não encontrada'})
+        
+        # Inserir usuário
+        cursor.execute(
+            'INSERT INTO usuarios (email, senha, nome, telefone, tipo_usuario, data_cadastro) VALUES (%s, %s, %s, %s, %s, NOW())',
+            (email, senha_hash, nome, telefone, 'veterinario')
+        )
+        usuario_id = cursor.lastrowid
+        
+        # Inserir veterinário
+        cursor.execute(
+            'INSERT INTO veterinarios (veterinario_id, crmv, uf_crmv, especialidades, descricao, clinica_id, foto, documento_crmv) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)',
+            (usuario_id, crmv, uf_crmv, especialidades_str, descricao, clinica_id, foto, documento_crmv)
+        )
+        
+        conn.commit()
+        
+        # Retornar sucesso
+        return jsonify({
+            'success': True, 
+            'message': 'Veterinário cadastrado com sucesso!',
+            'redirect': url_for('login_page')
+        })
+        
+    except Exception as e:
+        # Em caso de erro, fazer rollback
+        if 'conn' in locals() and conn:
+            conn.rollback()
+        return jsonify({'success': False, 'message': f'Erro ao cadastrar: {str(e)}'})
+    
+    finally:
+        # Fechar conexão
+        if 'cursor' in locals() and cursor:
+            cursor.close()
+        if 'conn' in locals() and conn:
+            conn.close()
+
+# Rota para página de cadastro de veterinário
+@app.route('/pages/cadastro-veterinario.html')
+def cadastro_veterinario_page():
+    # Buscar clínicas para o select
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('SELECT clinica_id, razao_social FROM clinicas')
+    clinicas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    return render_template('pages/cadastro-veterinario.html', clinicas=clinicas)
+
+# Rota para buscar profissionais de uma clínica
+@app.route('/get-profissionais-da-clinica/<int:clinica_id>')
+def get_profissionais_da_clinica(clinica_id):
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Usuário não autenticado'}), 401
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Buscar veterinários da clínica
+        cursor.execute('''
+            SELECT v.veterinario_id as profissional_id, u.nome as nome_profissional 
+            FROM veterinarios v 
+            JOIN usuarios u ON v.veterinario_id = u.usuario_id 
+            WHERE v.clinica_id = %s
+        ''', (clinica_id,))
+        
+        profissionais = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        return jsonify(profissionais)
+    
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# Rota para página de agendamento de consulta
+@app.route('/pages/agendar-consulta.html')
+def agendar_consulta_page():
+    if 'user_id' not in session or session['user_type'] != 'tutor':
+        return redirect(url_for('login'))
+        
+    # Buscar os pets do usuário logado
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute('SELECT * FROM pets WHERE usuario_id = %s', (session['id'],))
+    pets = cursor.fetchall()
+    
+    # Buscar todas as clínicas
+    cursor.execute('SELECT * FROM clinicas')
+    clinicas = cursor.fetchall()
+    
+    # Definir horários disponíveis (8h às 18h, de hora em hora)
+    horas_disponiveis = ['08:00', '09:00', '10:00', '11:00', '12:00', 
+                         '13:00', '14:00', '15:00', '16:00', '17:00', '18:00']
+    
+    # Data de hoje para validação no input date
+    hoje = datetime.now().strftime('%Y-%m-%d')
+    
+    return render_template('pages/agendar-consulta.html', 
+                          pets=pets, 
+                          clinicas=clinicas, 
+                          horas_disponiveis=horas_disponiveis,
+                          hoje=hoje)
+
+@app.route('/get-profissionais-da-clinica/<int:clinica_id>')
+@login_required
+def get_profissionais_da_clinica(clinica_id):
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        
+        # Buscar profissionais (veterinários) associados à clínica
+        cursor.execute('''
+            SELECT p.profissional_id, u.nome as nome_profissional
+            FROM profissionais p
+            JOIN usuarios u ON p.usuario_id = u.id
+            WHERE p.clinica_id = %s
+        ''', (clinica_id,))
+        
+        profissionais = cursor.fetchall()
+        return jsonify(profissionais)
+    
+    except Exception as e:
+        app.logger.error(f"Erro ao buscar profissionais: {str(e)}")
+        return jsonify([]), 500
+
+@app.route('/salvar-agendamento', methods=['POST'])
+@login_required
+def salvar_agendamento():
+    try:
+        # Obter dados do formulário
+        pet_id = request.form.get('pet_id')
+        clinica_id = request.form.get('clinica_id')
+        profissional_id = request.form.get('profissional_id') or None  # Opcional
+        data_consulta = request.form.get('data_consulta')
+        hora_consulta = request.form.get('hora_consulta')
+        observacoes = request.form.get('observacoes')
+        
+        # Validações básicas
+        if not pet_id or not clinica_id or not data_consulta or not hora_consulta:
+            return jsonify({'success': False, 'message': 'Todos os campos obrigatórios devem ser preenchidos'}), 400
+        
+        # Verificar se a data é futura
+        data_hora_consulta = datetime.strptime(f"{data_consulta} {hora_consulta}", "%Y-%m-%d %H:%M")
+        if data_hora_consulta <= datetime.now():
+            return jsonify({'success': False, 'message': 'A data e horário da consulta devem ser futuros'}), 400
+        
+        # Verificar se o pet pertence ao usuário logado
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT * FROM pets WHERE pet_id = %s AND usuario_id = %s', (pet_id, session['id']))
+        pet = cursor.fetchone()
+        
+        if not pet:
+            return jsonify({'success': False, 'message': 'Pet não encontrado ou não pertence ao usuário'}), 403
+        
+        # Verificar se o horário está disponível na clínica
+        cursor.execute('''
+            SELECT * FROM consultas 
+            WHERE clinica_id = %s AND data_consulta = %s AND hora_consulta = %s
+            AND status != 'cancelada'
+        ''', (clinica_id, data_consulta, hora_consulta))
+        
+        if cursor.fetchone():
+            return jsonify({'success': False, 'message': 'Este horário já está ocupado na clínica selecionada'}), 409
+        
+        # Se um profissional foi selecionado, verificar disponibilidade específica
+        if profissional_id:
+            cursor.execute('''
+                SELECT * FROM consultas 
+                WHERE profissional_id = %s AND data_consulta = %s AND hora_consulta = %s
+                AND status != 'cancelada'
+            ''', (profissional_id, data_consulta, hora_consulta))
+            
+            if cursor.fetchone():
+                return jsonify({'success': False, 'message': 'Este profissional já possui um agendamento neste horário'}), 409
+        
+        # Inserir o agendamento no banco de dados
+        cursor.execute('''
+            INSERT INTO consultas (pet_id, clinica_id, profissional_id, data_consulta, hora_consulta, 
+                                  observacoes, status, data_criacao)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+        ''', (pet_id, clinica_id, profissional_id, data_consulta, hora_consulta, observacoes, 'agendada'))
+        
+        mysql.connection.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Consulta agendada com sucesso!'
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Erro ao salvar agendamento: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'message': f'Erro ao processar agendamento: {str(e)}'
+        }), 500
+    if 'user_id' not in session or session['user_type'] != 'tutor':
+        flash('Acesso não autorizado')
+        return redirect(url_for('login_page'))
+    
+    user_id = session['user_id']
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Buscar pets do tutor
+    cursor.execute('SELECT * FROM pets WHERE tutor_id = %s', (user_id,))
+    pets = cursor.fetchall()
+    
+    # Buscar clínicas disponíveis
+    cursor.execute('SELECT clinica_id, razao_social FROM clinicas')
+    clinicas = cursor.fetchall()
+    
+    # Gerar horários disponíveis (de 8h às 18h, a cada 30 min)
+    horas_disponiveis = []
+    for hora in range(8, 19):
+        for minuto in [0, 30]:
+            if hora == 18 and minuto == 30:
+                continue  # Não incluir 18:30
+            horas_disponiveis.append(f"{hora:02d}:{minuto:02d}")
+    
+    # Data de hoje para validação
+    hoje = datetime.datetime.now().strftime('%Y-%m-%d')
+    
+    cursor.close()
+    conn.close()
+    
+    return render_template('pages/agendar-consulta.html', 
+                          pets=pets, 
+                          clinicas=clinicas, 
+                          horas_disponiveis=horas_disponiveis,
+                          hoje=hoje)
+
+# Rota para salvar agendamento
+@app.route('/salvar-agendamento', methods=['POST'])
+def salvar_agendamento():
+    if 'user_id' not in session or session['user_type'] != 'tutor':
+        return jsonify({'success': False, 'message': 'Acesso não autorizado'}), 403
+    
+    try:
+        # Obter dados do formulário
+        pet_id = request.form['pet_id']
+        clinica_id = request.form['clinica_id']
+        profissional_id = request.form.get('profissional_id', None)  # Opcional
+        data_consulta = request.form['data_consulta']
+        hora_consulta = request.form['hora_consulta']
+        observacoes = request.form.get('observacoes', '')
+        
+        # Combinar data e hora
+        data_hora = f"{data_consulta} {hora_consulta}:00"
+        
+        # Validar se a data/hora é futura
+        data_hora_obj = datetime.datetime.strptime(data_hora, '%Y-%m-%d %H:%M:%S')
+        if data_hora_obj <= datetime.datetime.now():
+            return jsonify({'success': False, 'message': 'A data e horário da consulta devem ser futuros'})
+        
+        # Verificar disponibilidade do horário
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Se profissional foi especificado, verificar disponibilidade dele
+        if profissional_id:
+            cursor.execute('''
+                SELECT 1 FROM consultas 
+                WHERE data_hora = %s AND (clinica_id = %s OR veterinario_id = %s)
+            ''', (data_hora, clinica_id, profissional_id))
+        else:
+            cursor.execute('''
+                SELECT 1 FROM consultas 
+                WHERE data_hora = %s AND clinica_id = %s
+            ''', (data_hora, clinica_id))
+        
+        if cursor.fetchone():
+            return jsonify({'success': False, 'message': 'Este horário já está ocupado. Por favor, escolha outro.'})
+        
+        # Verificar se o pet pertence ao tutor
+        tutor_id = session['user_id']
+        cursor.execute('SELECT 1 FROM pets WHERE pet_id = %s AND tutor_id = %s', (pet_id, tutor_id))
+        if not cursor.fetchone():
+            return jsonify({'success': False, 'message': 'Pet não encontrado ou não pertence ao tutor'})
+        
+        # Inserir consulta
+        cursor.execute('''
+            INSERT INTO consultas (pet_id, clinica_id, veterinario_id, data_hora, observacoes, status, data_agendamento)
+            VALUES (%s, %s, %s, %s, %s, %s, NOW())
+        ''', (pet_id, clinica_id, profissional_id, data_hora, observacoes, 'agendada'))
+        
+        conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Consulta agendada com sucesso!'
+        })
+        
+    except Exception as e:
+        if 'conn' in locals() and conn:
+            conn.rollback()
+        return jsonify({'success': False, 'message': f'Erro ao agendar consulta: {str(e)}'})
+    
+    finally:
+        if 'cursor' in locals() and cursor:
+            cursor.close()
+        if 'conn' in locals() and conn:
+            conn.close()
+
 # Rota para atualizar pet
 @app.route('/atualizar-pet', methods=['POST'])
 def atualizar_pet():
