@@ -3,111 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalhes da Clínica - PetBooking</title>
-    <link rel="stylesheet" href="../styles/catalogo-clinicas.css">
+    <title>Detalhes da Clínica - VetBooking</title>
+    
+    <link rel="stylesheet" href="/styles/base.css">
+    <link rel="stylesheet" href="/styles/clinica-tutor.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
 </head>
 <body>
-    <header class="header">
-        <div class="navbar">
-            <a href="../index.html" class="logo">
-               <img src="../img/Imagem do WhatsApp de 2025-09-17 à(s) 15.28.08_75e67870.jpg" alt="VetBooking Logo">
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="/" class="logo" title="VetBooking — Início">
+                <img src="/img/Imagem do WhatsApp de 2025-09-17 à(s) 15.28.08_75e67870.jpg"
+                     alt="VetBooking Logo"
+                     class="logo-img"
+                     style="width:44px;height:44px;object-fit:cover;border-radius:8px;"
+                     onerror="this.onerror=null;this.src='../img/Imagem do WhatsApp de 2025-09-17 à(s) 15.28.08_75e67870.jpg'">
                 <span class="logo-text">VetBooking</span>
             </a>
-            <div class="nav-links">
-                <a href="../index.html">Página Inicial</a>
-                <a href="catalogo-clinicas.html" class="active">Clínicas</a>
-                <a href="#">Como Funciona</a>
+
+            <nav class="nav-links" aria-label="Main navigation">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/#clinicas" class="nav-link active">Clínicas</a>
+            </nav>
+
+            <div class="header-actions">
+                <button class="btn-voltar" onclick="history.back()" aria-label="Voltar">&larr; Voltar</button>
             </div>
-            <div class="burger">
-                <div class="line1"></div>
-                <div class="line2"></div>
-                <div class="line3"></div>
-            </div>
+        </div>
+
+        <div class="subheader">
+            <div id="clinic-title" class="clinic-title">Detalhes da Clínica</div>
         </div>
     </header>
-    <div class="main-container">
-        <div class="clinic-details" id="clinic-details">
-            <!-- Detalhes da clínica serão carregados aqui -->
+
+    <div class="main-container" style="padding-top: 100px; max-width: 1200px; margin: 0 auto; padding: 20px;">
+        
+        <div id="loading-spinner" style="text-align: center; padding: 50px;">
+            <i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Carregando informações da clínica...
         </div>
-        <div class="back-btn-container">
-            <a href="catalogo-clinicas.html" class="btn-voltar">Voltar ao Catálogo</a>
+
+        <div id="clinic-details-container"></div>
+
+        <div class="back-btn-container" style="margin-top: 30px;">
+            <a href="javascript:history.back()" class="btn-voltar" style="color: #666; text-decoration: none;">&larr; Voltar</a>
         </div>
     </div>
-    <footer class="footer">
-        <div class="footer-container">
-            <div>
-                <div class="footer-logo">
-                    <img src="../img/Imagem do WhatsApp de 2025-09-17 à(s) 15.28.08_75e67870.jpg" alt="VetBooking Logo">
-                    <span class="footer-logo-text">VetBooking</span>
-                </div>
-                <p class="footer-description">Conectando tutores às melhores clínicas para cuidar do seu pet.</p>
-            </div>
-            <div>
-                <h3 class="footer-heading">Links Rápidos</h3>
-                <ul class="footer-links">
-                    <li class="footer-link"><a href="../index.html">Página Inicial</a></li>
-                    <li class="footer-link"><a href="catalogo-clinicas.html">Buscar Clínicas</a></li>
-                    <li class="footer-link"><a href="login.html">Minha Conta</a></li>
-                </ul>
-            </div>
-            <div>
-                <h3 class="footer-heading">Para Profissionais</h3>
-                <ul class="footer-links">
-                    <li class="footer-link"><a href="cadastro-clinica.html">Cadastro de Clínicas</a></li>
-                    <li class="footer-link"><a href="#">Como Funciona</a></li>
-                </ul>
-            </div>
-            <div>
-                <h3 class="footer-heading">Contato</h3>
-                <ul class="footer-links">
-                    <li class="footer-link"><a href="mailto:contato@vetbooking.com">contato@vetbooking.com</a></li>
-                    <li class="footer-link"><a href="tel:+5541999999999">(41) 99999-9999</a></li>
-                </ul>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; 2024 VetBooking. Todos os direitos reservados.</p>
-        </div>
-    </footer>
+
     <script>
-    function getQueryParam(param) {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get(param);
-    }
-    function renderClinicDetails(clinic) {
-        const container = document.getElementById('clinic-details');
-        if (!clinic) {
-            container.innerHTML = '<p>Clínica não encontrada.</p>';
-            return;
-        }
-        container.innerHTML = `
-            <div class="clinic-details-card">
-                <div class="clinic-image-large">
-                    <img src="${clinic.imagem || 'https://images.unsplash.com/photo-1516574187841-cb9cc2ca948b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80'}" alt="${clinic.nome}">
-                </div>
-                <div class="clinic-info-large">
-                    <h2>${clinic.nome}</h2>
-                    <p><strong>Serviços:</strong> ${clinic.servicos || ''}</p>
-                    <p><strong>Avaliação:</strong> ${clinic.avaliacao || ''}</p>
-                    <p><strong>Localização:</strong> ${clinic.localizacao || ''}</p>
-                    <p><strong>Preço:</strong> ${clinic.preco || ''}</p>
-                    <p><strong>Características:</strong> ${(clinic.caracteristicas || '').split(',').map(f => `<span class='feature-tag'>${f}</span>`).join('')}</p>
-                    <p><strong>Descrição:</strong> ${clinic.descricao || 'Sem descrição.'}</p>
-                    <a href="agendar-consulta.html?clinica_id=${clinic.id}" class="btn-agendar">Agendar Consulta</a>
-                </div>
-            </div>
-        `;
-    }
-    document.addEventListener('DOMContentLoaded', function() {
-        const id = getQueryParam('id');
-        fetch('/api/clinicas')
-            .then(res => res.json())
-            .then(data => {
-                const clinic = data.find(c => String(c.id) === String(id));
-                renderClinicDetails(clinic);
-            });
+/* Robust clinic detail loader: pega id da URL, busca /api/clinicas e escolhe imagem aleatória se necessário */
+const DEFAULT_CLINIC_IMAGES = [
+  'https://images.unsplash.com/photo-1516574187841-cb9cc2ca948b?auto=format&fit=crop&w=1350&q=80',
+  'https://images.unsplash.com/photo-1583301286816-f4f05e1e8b25?auto=format&fit=crop&w=1350&q=80',
+  'https://images.unsplash.com/photo-1584794171574-fe3f84b43838?auto=format&fit=crop&w=1350&q=80',
+  'https://images.unsplash.com/photo-1557800636-894a64c1696f?auto=format&fit=crop&w=1350&q=80',
+  'https://images.unsplash.com/photo-1502673530728-f79b4cab31b1?auto=format&fit=crop&w=1350&q=80',
+  'https://images.unsplash.com/photo-1526256262350-7da7584cf5eb?auto=format&fit=crop&w=1350&q=80',
+];
+
+function getRandomClinicImage() {
+  return DEFAULT_CLINIC_IMAGES[Math.floor(Math.random() * DEFAULT_CLINIC_IMAGES.length)];
+}
+
+function getClinicIdFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  let id = params.get('clinica_id') || params.get('id');
+  if (id) return id;
+  // tenta extrair número da rota (ex: /clinica/123 ou /pages/clinica-tutor.html?clinica_id=123)
+  const m = window.location.pathname.match(/(\d+)/);
+  return m ? m[1] : null;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const container = document.getElementById('clinic-details-container');
+  const spinner = document.getElementById('loading-spinner');
+  const clinicId = getClinicIdFromUrl();
+
+  if (!clinicId) {
+    spinner.style.display = 'none';
+    container.innerHTML = `<p style="text-align:center; color:red">Erro: ID da clínica não encontrado na URL.</p>`;
+    console.error('clinica-tutor: clinicId not found in URL');
+    return;
+  }
+
+  fetch('/api/clinicas', { credentials: 'same-origin' })
+    .then(res => {
+      if (!res.ok) throw new Error('API /api/clinicas retornou ' + res.status);
+      return res.json();
+    })
+    .then(list => {
+      spinner.style.display = 'none';
+      if (!Array.isArray(list)) {
+        throw new Error('Resposta /api/clinicas inválida: não é array');
+      }
+      const clinic = list.find(c => String(c.id) === String(clinicId));
+      if (!clinic) {
+        container.innerHTML = `<div style="text-align:center;padding:40px;"><h2>Clínica não encontrada</h2><p>ID ${clinicId} não existe.</p></div>`;
+        console.warn('clinica-tutor: clinic not found in list', clinicId, list);
+        return;
+      }
+      renderClinic(clinic);
+    })
+    .catch(err => {
+      spinner.style.display = 'none';
+      container.innerHTML = `<p style="text-align:center;color:red">Erro ao carregar dados da clínica.</p>`;
+      console.error('clinica-tutor fetch error:', err);
     });
-    </script>
+
+  function renderClinic(clinic) {
+    const tags = clinic.caracteristicas ? clinic.caracteristicas.split(',').map(t => `<span class="feature-tag">${t.trim()}</span>`).join('') : '';
+    // considera sem foto quando imagem indefinida, nula, vazia ou conter "default-clinic"
+    const hasImage = clinic.imagem && String(clinic.imagem).trim().length > 5 && !/default-clinic/i.test(clinic.imagem);
+    const imgUrl = hasImage ? clinic.imagem : getRandomClinicImage();
+
+    const localizacao = clinic.localizacao || [clinic.cidade, clinic.uf].filter(Boolean).join(', ') || '';
+    const telefone = clinic.telefone || 'Não informado';
+
+    const html = `
+      <div class="clinic-details-card loaded">
+        <div class="clinic-image-large">
+          <img src="${imgUrl}" alt="${clinic.nome || 'Clínica'}" onerror="this.src='https://via.placeholder.com/800x400?text=Sem+Foto'">
+        </div>
+        <div class="clinic-info-large">
+          <h2>${clinic.nome || 'Clínica'}</h2>
+          ${localizacao ? `<div class="info-row"><i class="fas fa-map-marker-alt"></i> ${localizacao}</div>` : ''}
+          <div class="info-row"><i class="fas fa-phone"></i> ${telefone}</div>
+          <div style="margin: 15px 0;">${tags}</div>
+          <p>${clinic.descricao || 'Sem descrição disponível.'}</p>
+          <a href="/pages/agendar-consulta.html?clinica_id=${clinic.id}" class="btn-agendar-large">
+            <i class="fas fa-calendar-check"></i> Agendar Consulta
+          </a>
+        </div>
+      </div>
+    `;
+    container.innerHTML = html;
+  }
+});
+</script>
 </body>
 </html>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Veterinários</title>
+  <link rel="stylesheet" href="../styles/base.css ">
+  <link rel="stylesheet" href="../styles/veterinario.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="../index.html" class="logo">
+                <img src="../img/Imagem do WhatsApp de 2025-09-17 à(s) 15.28.08_75e67870.jpg" alt="VetBooking Logo">
+                <span class="logo-text">VetBooking</span>
+            </a>
+
+            <nav class="nav-links" aria-label="Main navigation">
+                <a href="../index.html">Home</a>
+                <a href="/pages/catalogo-clinicas.html">Clínicas</a>
+                <a href="/pages/veterinario.html" class="active">Veterinários</a>
+            </nav>
+
+            <button class="nav-toggle" aria-label="Abrir menu">☰</button>
+        </div>
+    </header>
+  <main class="container">
+    <h1>Veterinários Cadastrados</h1>
+    <div id="vet-list" class="vet-list">
+      <!-- lista preenchida por JS -->
+      <p>Carregando...</p>
+    </div>
+  </main>
+
+  <script>
+    function createCard(m) {
+      const div = document.createElement('div');
+      div.className = 'vet-card';
+      div.innerHTML = `
+        <img src="${m.foto}" alt="${m.nome}" class="vet-photo" style="width:80px;height:80px;object-fit:cover;border-radius:8px;">
+        <div class="vet-info">
+          <h3>${m.nome}</h3>
+          <p>CRMV: ${m.crmv || '-'}</p>
+          <p>Especialidades: ${m.especialidades || '-'}</p>
+        </div>
+        <div class="vet-actions">
+          <a href="/editar-veterinario/${m.id}" class="btn">Editar</a>
+        </div>
+      `;
+      return div;
+    }
+
+    function loadVets() {
+      fetch('/api/medicos')
+        .then(res => res.json())
+        .then(data => {
+          const list = document.getElementById('vet-list');
+          list.innerHTML = '';
+          if (!data || data.length === 0) {
+            list.innerHTML = '<p>Nenhum veterinário cadastrado.</p>';
+            return;
+          }
+          data.forEach(m => list.appendChild(createCard(m)));
+        })
+        .catch(err => {
+          console.error(err);
+          document.getElementById('vet-list').innerHTML = '<p>Erro ao carregar veterinários.</p>';
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', loadVets);
+  </script>
+</body>
+</html>

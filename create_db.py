@@ -2,7 +2,7 @@ import mysql.connector
 import os
 
 def create_database():
-    print('Criando banco de dados VetBooking...')
+    print('Criando/Verificando banco de dados VetBooking...')
     
     # Conectar ao MySQL sem especificar um banco de dados
     try:
@@ -37,8 +37,8 @@ def create_database():
         )
         cursor = conn.cursor()
         
-        # Criar as tabelas manualmente em vez de usar o arquivo SQL
-        print("Criando tabelas no banco de dados...")
+        # Criar as tabelas
+        print("Verificando e criando tabelas...")
         
         # Tabela pais
         cursor.execute("""
@@ -111,7 +111,7 @@ def create_database():
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
         """)
         
-        # Tabela clinicas
+        # Tabela clinicas (ATUALIZADA COM IMAGEM E DESCRICAO)
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS clinicas (
           clinica_id int NOT NULL AUTO_INCREMENT,
@@ -127,6 +127,8 @@ def create_database():
           complemento varchar(255) DEFAULT NULL,
           telefone varchar(255) DEFAULT NULL,
           horario_funcionamento datetime DEFAULT NULL,
+          imagem varchar(255) DEFAULT NULL, -- COLUNA NOVA
+          descricao text DEFAULT NULL,      -- COLUNA NOVA
           data_cadastro timestamp NULL DEFAULT NULL,
           PRIMARY KEY (clinica_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
@@ -143,7 +145,7 @@ def create_database():
           sexo char(1) DEFAULT NULL,
           peso double DEFAULT NULL,
           tutor_id int DEFAULT NULL,
-          foto varchar(255) DEFAULT NULL,  -- COLUNA ADICIONADA                  
+          foto varchar(255) DEFAULT NULL,                  
           data_cadastro timestamp NULL DEFAULT NULL,
           PRIMARY KEY (pet_id),
           KEY fk_pet_tutor (tutor_id),
@@ -176,7 +178,7 @@ def create_database():
           clinica_id int DEFAULT NULL,
           status enum('agendado','cancelado','concluido') DEFAULT NULL,
           observacoes varchar(255) DEFAULT NULL,
-          foto varchar(255) DEFAULT NULL,  -- COLUNA ADICIONADA             
+          foto varchar(255) DEFAULT NULL,             
           data_cadastro timestamp NULL DEFAULT NULL,
           PRIMARY KEY (agendamento_id),
           KEY fk_agendamento_pet (pet_id),
@@ -203,27 +205,29 @@ def create_database():
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
         """)
 
+        # --- SEÇÃO DE ATUALIZAÇÃO DE TABELAS EXISTENTES (ALTER TABLE) ---
+        print("\nVerificando atualizações de colunas (ALTER TABLE)...")
+        
+        # Tentar adicionar 'imagem' em clinicas (caso não exista)
+        try:
+            cursor.execute("ALTER TABLE clinicas ADD COLUMN imagem VARCHAR(255) DEFAULT NULL")
+            print("- Coluna 'imagem' adicionada à tabela 'clinicas'.")
+        except mysql.connector.Error as err:
+            if err.errno == 1060: # Código de erro para "Duplicate column name"
+                print("- Coluna 'imagem' já existe em 'clinicas'.")
+            else:
+                print(f"Aviso ao alterar clinicas (imagem): {err}")
 
-        cursor.execute("""
-       CREATE TABLE IF NOT EXISTS pets (
-          pet_id int NOT NULL AUTO_INCREMENT,
-          nome_pet varchar(255) DEFAULT NULL,
-          especie varchar(255) DEFAULT NULL,
-          raca varchar(255) DEFAULT NULL,
-          data_nascimento datetime DEFAULT NULL,
-          sexo char(1) DEFAULT NULL,
-          peso double DEFAULT NULL,
-          tutor_id int DEFAULT NULL,
-          data_cadastro timestamp NULL DEFAULT NULL,
-          foto varchar(255) DEFAULT NULL,  -- COLUNA ADICIONADA
-          PRIMARY KEY (pet_id),
-          KEY fk_pet_tutor (tutor_id),
-          CONSTRAINT fk_pet_tutor FOREIGN KEY (tutor_id) REFERENCES tutores (tutor_id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
-        """)
-        
-        print("Todas as tabelas foram criadas com sucesso!")
-        
+        # Tentar adicionar 'descricao' em clinicas (caso não exista)
+        try:
+            cursor.execute("ALTER TABLE clinicas ADD COLUMN descricao TEXT DEFAULT NULL")
+            print("- Coluna 'descricao' adicionada à tabela 'clinicas'.")
+        except mysql.connector.Error as err:
+            if err.errno == 1060:
+                print("- Coluna 'descricao' já existe em 'clinicas'.")
+            else:
+                print(f"Aviso ao alterar clinicas (descricao): {err}")
+
         # Commit das alterações
         conn.commit()
         
@@ -231,18 +235,14 @@ def create_database():
         cursor.execute("SHOW TABLES")
         tables = cursor.fetchall()
         
-        print("\nTabelas criadas no banco de dados:")
-        for table in tables:
-            print(f"- {table[0]}")
+        print("\nEstrutura do banco de dados verificada com sucesso!")
         
         cursor.close()
         conn.close()
-        
-        print("\nBanco de dados configurado com sucesso!")
         return True
     
     except mysql.connector.Error as err:
-        print(f"Erro: {err}")
+        print(f"Erro fatal: {err}")
         return False
 
 def check_database_connection():
@@ -269,17 +269,20 @@ def check_database_connection():
         if 'tutores' in table_names:
             cursor.execute("SELECT COUNT(*) FROM tutores")
             tutor_count = cursor.fetchone()[0]
-            print(f"\nNúmero de tutores cadastrados: {tutor_count}")
-        
-        if 'medicos' in table_names:
-            cursor.execute("SELECT COUNT(*) FROM medicos")
-            medico_count = cursor.fetchone()[0]
-            print(f"\nNúmero de médicos cadastrados: {medico_count}")
+            print(f"  > Tutores cadastrados: {tutor_count}")
         
         if 'clinicas' in table_names:
             cursor.execute("SELECT COUNT(*) FROM clinicas")
             clinica_count = cursor.fetchone()[0]
-            print(f"\nNúmero de clínicas cadastradas: {clinica_count}")
+            print(f"  > Clínicas cadastradas: {clinica_count}")
+            
+            # Verificar se as colunas novas existem mesmo
+            cursor.execute("DESCRIBE clinicas")
+            columns = [col[0] for col in cursor.fetchall()]
+            if 'imagem' in columns and 'descricao' in columns:
+                print("  > [OK] Tabela clinicas possui colunas 'imagem' e 'descricao'.")
+            else:
+                print("  > [ATENÇÃO] Tabela clinicas NÃO possui as novas colunas!")
         
         cursor.close()
         conn.close()
@@ -292,7 +295,7 @@ def check_database_connection():
         return False
 
 if __name__ == '__main__':
-    print("=== Criação e Verificação do Banco de Dados VetBooking ===")
+    print("=== Criação e Atualização do Banco de Dados VetBooking ===")
     create_database()
-    print("\n=== Verificando conexão com o banco de dados ===")
+    print("\n=== Verificando conexão e estrutura ===")
     check_database_connection()

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Atendimentos - VetBooking</title>
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/consultas.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="/index.html" class="logo">
+        <img src="../img/logo.png" alt="VetBooking" class="logo-img" onerror="this.onerror=null;this.src='../img/Imagem do WhatsApp de 2025-09-17 à(s) 15.28.08_75e67870.jpg'">
+        <span class="logo-text">VetBooking</span>
+      </a>
+
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/pages/atendimentos-clinica.html" class="active">Atendimentos</a>
+        <a href="/pages/veterinario.html">Médicos</a>
+      </nav>
+
+  
+    </div>
+  </header>
+
+  <main class="container" style="max-width:1100px;margin:28px auto;">
+    <h1>Atendimentos da Clínica</h1>
+
+    <div style="display:flex;gap:12px;align-items:center;margin-top:8px;">
+      <label class="text-muted">Filtrar:</label>
+      <select id="filter-status" style="padding:8px;border-radius:8px;border:1px solid #e6e9ee;">
+        <option value="all">Todos</option>
+        <option value="agendado">Agendado</option>
+        <option value="confirmado">Confirmado</option>
+        <option value="concluido">Concluído</option>
+        <option value="cancelado">Cancelado</option>
+      </select>
+      <input id="search-input" placeholder="buscar por pet, tutor ou data" style="flex:1;padding:8px;border-radius:8px;border:1px solid #e6e9ee;">
+    </div>
+
+    <div id="atend-list" style="margin-top:16px;">Carregando...</div>
+  </main>
+
+  <script>
+    async function loadAtendimentos(){
+      const el = document.getElementById('atend-list');
+      const filter = document.getElementById('filter-status').value;
+      const term = (document.getElementById('search-input').value || '').toLowerCase().trim();
+
+      try {
+        const res = await fetch('/api/consultas', { credentials: 'same-origin' });
+        if (!res.ok) { el.textContent = 'Erro ao carregar atendimentos.'; return; }
+        let data = await res.json();
+        if (!Array.isArray(data)) { el.textContent = 'Resposta inválida da API.'; return; }
+
+        // filtrar por status (quando não 'all')
+        if (filter && filter !== 'all') {
+          data = data.filter(d => String(d.status || '').toLowerCase() === filter);
+        }
+
+        // buscar por termos
+        if (term) {
+          data = data.filter(d => {
+            return (d.nome_pet || '').toLowerCase().includes(term)
+              || (d.tutor_nome || '').toLowerCase().includes(term)
+              || (d.clinica_nome || '').toLowerCase().includes(term)
+              || (d.data_hora || '').toLowerCase().includes(term);
+          });
+        }
+
+        el.innerHTML = '';
+        if (!data || data.length === 0) { el.innerHTML = '<p>Nenhum atendimento encontrado.</p>'; return; }
+
+        data.forEach(c => {
+          const when = c.data_hora ? new Date(c.data_hora.replace(' ','T')) : null;
+          const item = document.createElement('div');
+          item.className = 'consulta-item';
+          item.innerHTML = `
+            <div class="consulta-dt">${when ? when.toLocaleString() : '-'}</div>
+            <div class="consulta-details">
+              <div><strong>${c.nome_pet || '-'}</strong>${c.tutor_nome ? ' — Tutor: ' + c.tutor_nome : ''}</div>
+              <div class="consulta-meta">
+                ${c.clinica_nome || ''}
+                ${c.nome_medico ? ' — Dr. ' + c.nome_medico : ''}
+                ${c.clinica_endereco ? '<br><small style="color:#6b7280;">' + c.clinica_endereco + '</small>' : ''}
+                ${c.clinica_telefone ? '<br><small style="color:#6b7280;">Tel: ' + c.clinica_telefone + '</small>' : ''}
+                <div style="margin-top:6px;">
+                  <span class="status-badge status-${(c.status||'').replace(/\s+/g,'').toLowerCase()}">${c.status || ''}</span>
+                </div>
+              </div>
+            </div>
+       
+          `;
+          el.appendChild(item);
+        });
+
+      } catch (err) {
+        console.error(err);
+        el.textContent = 'Erro ao carregar atendimentos.';
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadAtendimentos();
+      document.getElementById('filter-status').addEventListener('change', loadAtendimentos);
+      document.getElementById('search-input').addEventListener('input', () => { clearTimeout(window._atend_search); window._atend_search = setTimeout(loadAtendimentos, 300); });
+
+
+    });
+  </script>
+</body>
+</html>

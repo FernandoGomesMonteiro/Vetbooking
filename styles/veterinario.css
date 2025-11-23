@@ -1,0 +1,213 @@
+/* Estilos pensados para combinar com base.css - leve, responsivo e reutilizável */
+
+:root{
+  --bg-card: #ffffff;
+  --border: #e6e9ee;
+  --muted: #6b7280;
+  --accent: #2b6cb0; /* azul suave */
+  --shadow: 0 6px 18px rgba(43,108,176,0.08);
+  --radius: 10px;
+  --gap: 16px;
+}
+
+/* Container */
+.vet-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--gap);
+  margin: 24px 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Card */
+.vet-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 14px;
+  border-radius: var(--radius);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+
+.vet-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(43,108,176,0.12);
+}
+
+/* Foto */
+.vet-photo {
+  width: 96px;
+  height: 96px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex: 0 0 96px;
+  border: 1px solid var(--border);
+  background: #f7fafc;
+}
+
+/* Informações */
+.vet-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.vet-info h3 {
+  margin: 0 0 6px 0;
+  font-size: 1.05rem;
+  color: #111827;
+}
+
+.vet-info p {
+  margin: 2px 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+/* Ações */
+.vet-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+  flex: 0 0 auto;
+}
+
+.vet-actions .btn {
+  display: inline-block;
+  padding: 8px 12px;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+  transition: background .12s ease, transform .08s ease;
+}
+
+.vet-actions .btn:hover {
+  background: #255a90;
+  transform: translateY(-2px);
+}
+
+/* Empty / loading states */
+.vet-list p {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  text-align: center;
+  margin: 12px 0;
+}
+
+/* Header específico (leve e consistente com base.css) */
+.site-header {
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 60;
+}
+.header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: #111827;
+  flex: 0 0 auto;
+}
+.logo img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.logo-text {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+/* Nav links */
+.nav-links {
+  display: flex;
+  gap: 14px;
+  margin-left: 8px;
+  align-items: center;
+  flex: 1 1 auto;
+}
+.nav-links a {
+  color: var(--muted);
+  text-decoration: none;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+.nav-links a:hover,
+.nav-links a.active {
+  color: var(--accent);
+  background: rgba(43,108,176,0.06);
+}
+
+/* Auth buttons */
+.nav-auth {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.btn {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  cursor: pointer;
+  text-decoration: none;
+  border: none;
+}
+.btn-outline {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid rgba(43,108,176,0.12);
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Mobile: toggle and collapsed nav */
+.nav-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+@media (max-width: 880px) {
+  .nav-links { display: none; position: absolute; left: 0; right: 0; top: 64px; background:#fff; flex-direction: column; padding: 12px; border-bottom: 1px solid var(--border); }
+  .nav-links a { padding: 10px; }
+  .nav-toggle { display: block; margin-left: 8px; }
+  .nav-auth { display: none; } /* fica dentro do menu em mobile se preferir */
+}
+
+/* Responsividade */
+@media (max-width: 992px) {
+  .vet-list { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .vet-list { grid-template-columns: 1fr; }
+  .vet-card { padding: 12px; gap: 10px; }
+  .vet-photo { width: 72px; height: 72px; flex: 0 0 72px; }
+  .vet-actions { align-items: stretch; }
+  .vet-actions .btn { width: 100%; text-align: center; }
+}
+
+/* Simple script to toggle mobile menu (keeps CSS-only fallback functional) */

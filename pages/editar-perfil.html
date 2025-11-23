@@ -20,7 +20,7 @@
             <div class="nav-links">
                 <a href="../index.html" class="nav-link">Página Inicial</a>
                 <a href="./catalogo-clinicas.html" class="nav-link">Clínicas</a>
-                <a href="#" class="nav-link">Como Funciona</a>
+                <a href="./como-funciona.html" class="nav-link">Como Funciona</a>
             </div>
             <div class="nav-auth">
                 <div class="user-menu">
@@ -30,17 +30,7 @@
                             <i class="fas fa-user-circle"></i>
                         </div>
                     </div>
-                    <div class="user-dropdown">
-                        <a href="./dashboard.html" class="dropdown-item">
-                            <i class="fas fa-tachometer-alt"></i> Dashboard
-                        </a>
-                        <a href="./editar-perfil.html" class="dropdown-item active">
-                            <i class="fas fa-user"></i> Meu Perfil
-                        </a>
-                        <a href="/logout" class="dropdown-item">
-                            <i class="fas fa-sign-out-alt"></i> Sair
-                        </a>
-                    </div>
+                
                 </div>
             </div>
         </div>
@@ -65,170 +55,49 @@
         <!-- Seção de Edição de Perfil -->
         <section class="edit-profile-section">
             <h2 class="section-title">Editar Perfil</h2>
-            
-            <!-- Formulário para Tutor -->
-            {% if user_type == 'tutor' %}
-            <div class="edit-profile-card">
-                <form action="/atualizar-tutor" method="POST" class="edit-profile-form">
-                    <div class="form-group">
-                        <label for="nome">Nome Completo</label>
-                        <input type="text" id="nome" name="nome" value="{{ tutor.nome_tutores }}" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" name="email" value="{{ tutor.email }}" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="endereco">Endereço</label>
-                        <input type="text" id="endereco" name="endereco" value="{{ tutor.endereco }}" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="cep">CEP</label>
-                        <input type="text" id="cep" name="cep" value="{{ tutor.cep }}" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="data_nascimento">Data de Nascimento</label>
-                        <input type="date" id="data_nascimento" name="data_nascimento" value="{{ tutor.data_nascimento }}" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="senha_atual">Senha Atual (necessária para alterações)</label>
-                        <input type="password" id="senha_atual" name="senha_atual">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="nova_senha">Nova Senha (deixe em branco para manter a atual)</label>
-                        <input type="password" id="nova_senha" name="nova_senha">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="confirmar_senha">Confirmar Nova Senha</label>
-                        <input type="password" id="confirmar_senha" name="confirmar_senha">
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
-                        <a href="./dashboard.html" class="btn btn-outline">Cancelar</a>
-                    </div>
-                </form>
-            </div>
-            {% endif %}
-            
-            <!-- Seção de médicos veterinários removida -->
-            
-            <!-- Formulário para Clínica -->
-            {% if user_type == 'clinica' %}
-            <div class="edit-profile-card">
-                <form action="/atualizar-clinica" method="POST" class="edit-profile-form">
-                    <div class="form-group">
-                        <label for="razao_social">Razão Social</label>
-                        <input type="text" id="razao_social" name="razao_social" value="{{ clinica.razao_social }}" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" name="email" value="{{ clinica.email }}" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="cep">CEP</label>
-                        <input type="text" id="cep" name="cep" value="{{ clinica.cep }}" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="uf">UF</label>
-                        <select id="uf" name="uf" required>
-                            <option value="AC" {% if clinica.uf == 'AC' %}selected{% endif %}>Acre</option>
-                            <option value="AL" {% if clinica.uf == 'AL' %}selected{% endif %}>Alagoas</option>
-                            <option value="AP" {% if clinica.uf == 'AP' %}selected{% endif %}>Amapá</option>
-                            <option value="AM" {% if clinica.uf == 'AM' %}selected{% endif %}>Amazonas</option>
-                            <option value="BA" {% if clinica.uf == 'BA' %}selected{% endif %}>Bahia</option>
-                            <option value="CE" {% if clinica.uf == 'CE' %}selected{% endif %}>Ceará</option>
-                            <option value="DF" {% if clinica.uf == 'DF' %}selected{% endif %}>Distrito Federal</option>
-                            <option value="ES" {% if clinica.uf == 'ES' %}selected{% endif %}>Espírito Santo</option>
-                            <option value="GO" {% if clinica.uf == 'GO' %}selected{% endif %}>Goiás</option>
-                            <option value="MA" {% if clinica.uf == 'MA' %}selected{% endif %}>Maranhão</option>
-                            <option value="MT" {% if clinica.uf == 'MT' %}selected{% endif %}>Mato Grosso</option>
-                            <option value="MS" {% if clinica.uf == 'MS' %}selected{% endif %}>Mato Grosso do Sul</option>
-                            <option value="MG" {% if clinica.uf == 'MG' %}selected{% endif %}>Minas Gerais</option>
-                            <option value="PA" {% if clinica.uf == 'PA' %}selected{% endif %}>Pará</option>
-                            <option value="PB" {% if clinica.uf == 'PB' %}selected{% endif %}>Paraíba</option>
-                            <option value="PR" {% if clinica.uf == 'PR' %}selected{% endif %}>Paraná</option>
-                            <option value="PE" {% if clinica.uf == 'PE' %}selected{% endif %}>Pernambuco</option>
-                            <option value="PI" {% if clinica.uf == 'PI' %}selected{% endif %}>Piauí</option>
-                            <option value="RJ" {% if clinica.uf == 'RJ' %}selected{% endif %}>Rio de Janeiro</option>
-                            <option value="RN" {% if clinica.uf == 'RN' %}selected{% endif %}>Rio Grande do Norte</option>
-                            <option value="RS" {% if clinica.uf == 'RS' %}selected{% endif %}>Rio Grande do Sul</option>
-                            <option value="RO" {% if clinica.uf == 'RO' %}selected{% endif %}>Rondônia</option>
-                            <option value="RR" {% if clinica.uf == 'RR' %}selected{% endif %}>Roraima</option>
-                            <option value="SC" {% if clinica.uf == 'SC' %}selected{% endif %}>Santa Catarina</option>
-                            <option value="SP" {% if clinica.uf == 'SP' %}selected{% endif %}>São Paulo</option>
-                            <option value="SE" {% if clinica.uf == 'SE' %}selected{% endif %}>Sergipe</option>
-                            <option value="TO" {% if clinica.uf == 'TO' %}selected{% endif %}>Tocantins</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="cidade">Cidade</label>
-                        <input type="text" id="cidade" name="cidade" value="{{ clinica.cidade }}" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="bairro">Bairro</label>
-                        <input type="text" id="bairro" name="bairro" value="{{ clinica.bairro }}" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="rua">Rua</label>
-                        <input type="text" id="rua" name="rua" value="{{ clinica.rua }}" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="numero">Número</label>
-                        <input type="text" id="numero" name="numero" value="{{ clinica.numero }}" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="complemento">Complemento</label>
-                        <input type="text" id="complemento" name="complemento" value="{{ clinica.complemento }}">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="telefone">Telefone</label>
-                        <input type="text" id="telefone" name="telefone" value="{{ clinica.telefone }}">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="horario_funcionamento">Horário de Funcionamento</label>
-                        <input type="text" id="horario_funcionamento" name="horario_funcionamento" value="{{ clinica.horario_funcionamento }}">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="senha_atual">Senha Atual (necessária para alterações)</label>
-                        <input type="password" id="senha_atual" name="senha_atual">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="nova_senha">Nova Senha (deixe em branco para manter a atual)</label>
-                        <input type="password" id="nova_senha" name="nova_senha">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="confirmar_senha">Confirmar Nova Senha</label>
-                        <input type="password" id="confirmar_senha" name="confirmar_senha">
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
-                        <a href="./dashboard.html" class="btn btn-outline">Cancelar</a>
-                    </div>
-                </form>
-            </div>
-            {% endif %}
+
+            <form id="edit-form" enctype="multipart/form-data">
+                <!-- Campos exibidos conforme tipo (exemplos genéricos) -->
+                {% if user_type == 'tutor' %}
+                    <label>Nome</label>
+                    <input name="nome" value="{{ tutor.nome_tutores or '' }}" required>
+                    <label>Email</label>
+                    <input name="email" value="{{ tutor.email or '' }}" type="email" required>
+                    <label>Data de Nascimento</label>
+                    <input name="data_nascimento" value="{{ tutor.data_nascimento or '' }}" type="date">
+                    <label>Telefone</label>
+                    <input name="telefone" value="{{ tutor.telefone or '' }}">
+                {% elif user_type == 'clinica' %}
+                    <label>Razão Social</label>
+                    <input name="razao_social" value="{{ clinica.razao_social or '' }}" required>
+                    <label>Email</label>
+                    <input name="email" value="{{ clinica.email or '' }}" type="email" required>
+                    <label>Telefone</label>
+                    <input name="telefone" value="{{ clinica.telefone or '' }}">
+                    <label>CEP</label>
+                    <input name="cep" value="{{ clinica.cep or '' }}">
+                    <label>Cidade</label>
+                    <input name="cidade" value="{{ clinica.cidade or '' }}">
+                    <label>UF</label>
+                    <input name="uf" value="{{ clinica.uf or '' }}">
+                {% else %}
+                    <label>Nome</label>
+                    <input name="nome_medico" value="{{ medico.nome_medico or '' }}" required>
+                    <label>Email</label>
+                    <input name="email" value="{{ medico.email or '' }}" type="email" required>
+                    <label>CRMV</label>
+                    <input name="crmv" value="{{ medico.crmv or '' }}">
+                    <label>Especialidades</label>
+                    <input name="especialidades" value="{{ medico.especialidades or '' }}">
+                    <label>Descrição</label>
+                    <textarea name="descricao">{{ medico.descricao or '' }}</textarea>
+                {% endif %}
+
+                <div style="margin-top:12px;">
+                    <button id="btn-save" type="submit">Salvar</button>
+                    <button id="btn-cancel" type="button" class="btn">Voltar</button>
+                </div>
+            </form>
         </section>
     </main>
 
@@ -280,6 +149,100 @@
             document.addEventListener('click', function() {
                 if (userMenu) {
                     userMenu.classList.remove('active');
+                }
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('edit-form');
+            const btnSave = document.getElementById('btn-save');
+            const btnCancel = document.getElementById('btn-cancel');
+
+            let isDirty = false;
+            let allowExit = false; // só permite sair se true (após salvar ou clicar Voltar)
+
+            // marcar form como "dirty" ao alterar qualquer campo
+            form.addEventListener('input', () => {
+                isDirty = true;
+            });
+
+            // Antes de unload: se não permitido, mostrar aviso nativo
+            window.addEventListener('beforeunload', (e) => {
+                if (!allowExit && isDirty) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                    return '';
+                }
+            });
+
+            // Evitar voltar do histórico enquanto alterações pendentes
+            try {
+                history.pushState({guard: true}, '', location.href);
+                window.addEventListener('popstate', (e) => {
+                    if (!allowExit && isDirty) {
+                        // Reinsere o estado e impede voltar
+                        history.pushState({guard: true}, '', location.href);
+                        alert('Você precisa salvar ou clicar em Voltar para sair desta tela.');
+                    } else {
+                        // permite navegar normalmente
+                        allowExit = true;
+                        history.back();
+                    }
+                });
+            } catch (err) {
+                console.warn('history API indisponível:', err);
+            }
+
+            // Bloquear cliques em links enquanto não permitido sair
+            document.addEventListener('click', (ev) => {
+                const a = ev.target.closest('a');
+                if (!a) return;
+                const href = a.getAttribute('href') || '';
+                // permitir âncoras internas
+                if (!allowExit && isDirty && !href.startsWith('#')) {
+                    ev.preventDefault();
+                    alert('Você precisa salvar ou clicar em Voltar para sair desta tela.');
+                }
+            }, true);
+
+            // Cancel (Voltar) — torna exit permitido e redireciona para dashboard
+            btnCancel.addEventListener('click', () => {
+                // confirmar intencionalmente sair sem salvar
+                const ok = confirm('Deseja realmente voltar sem salvar? Todas as alterações serão perdidas.');
+                if (ok) {
+                    allowExit = true;
+                    window.location.href = '/dashboard';
+                }
+            });
+
+            // Submit por fetch para receber redirect e redirecionar automaticamente
+            form.addEventListener('submit', async (ev) => {
+                ev.preventDefault();
+                btnSave.disabled = true;
+                btnSave.textContent = 'Salvando...';
+
+                const fd = new FormData(form);
+                try {
+                    const res = await fetch('/editar-perfil', {
+                        method: 'POST',
+                        body: fd,
+                        credentials: 'same-origin'
+                    });
+                    const json = await res.json();
+                    if (json.success) {
+                        // permitir saída e redirecionar
+                        allowExit = true;
+                        isDirty = false;
+                        window.location.href = json.redirect || '/dashboard';
+                    } else {
+                        alert('Erro ao salvar: ' + (json.message || 'Erro desconhecido'));
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('Erro ao salvar. Veja o console.');
+                } finally {
+                    btnSave.disabled = false;
+                    btnSave.textContent = 'Salvar';
                 }
             });
         });

@@ -4,23 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciar Pets - VetBooking</title>
-    <link rel="stylesheet" href="../styles/gerenciar-pets.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/gerenciar-pets.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Header/Navbar -->
-    <nav class="navbar">
-        <a href="../../index.html" class="logo">
-            <img src="../img/Imagem do WhatsApp de 2025-09-17 à(s) 15.28.08_75e67870.jpg" alt="VetBooking Logo">
-            <span>VetBooking</span>
-        </a>
-        <div class="nav-links">
-            <a href="../../index.html">Página Inicial</a>
-            <a href="{{ url_for('dashboard') }}">Dashboard</a>
-            <a href="{{ url_for('logout') }}">Sair</a>
+    <header class="header">
+        <div class="navbar">
+            <a href="{{ url_for('index') }}" class="logo">
+                <span class="logo-text">VetBooking</span>
+            </a>
+            <div class="nav-links">
+                <a href="{{ url_for('index') }}" class="nav-link">Página Inicial</a>
+                <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+            </div>
+            <div class="nav-auth">
+                <div class="user-menu">
+                    <div class="user-info">
+                        <span class="user-name">{{ session.get('user_name', 'Usuário') }}</span>
+                    </div>
+                    <a href="/logout" style="margin-left: 10px; color: white;"><i class="fas fa-sign-out-alt"></i> Sair</a>
+                </div>
+            </div>
         </div>
-    </nav>
+    </header>
 
     <div class="container">
         <div class="header-section">
@@ -28,35 +35,42 @@
             <p>Gerencie as informações dos seus animais de estimação</p>
         </div>
         
-        <!-- Botão para adicionar novo pet -->
         <button id="btn-adicionar-pet" class="btn-primary">
             <i class="fas fa-plus"></i> Adicionar Novo Pet
         </button>
         
-        <!-- Lista de pets -->
         <div class="pets-grid">
             {% if pets %}
                 {% for pet in pets %}
-                <div class="pet-card" data-pet-id="{{ pet.pet_id }}">
+                <div class="pet-card" 
+                     data-pet-id="{{ pet.pet_id }}"
+                     data-nome="{{ pet.nome_pet }}"
+                     data-especie="{{ pet.especie }}"
+                     data-raca="{{ pet.raca }}"
+                     data-nascimento="{{ pet.data_nascimento.strftime('%Y-%m-%d') if pet.data_nascimento else '' }}"
+                     data-sexo="{{ pet.sexo }}"
+                     data-peso="{{ pet.peso }}">
+                    
                     <div class="pet-header">
                         {% if pet.foto %}
                         <div class="pet-avatar">
-                            <img src="/uploads/pets/{{ pet.foto }}" alt="{{ pet.nome_pet }}" alt="{{ pet.nome_pet }}">
+                            <img src="{{ url_for('static', filename='uploads/pets/' + pet.foto) }}" alt="{{ pet.nome_pet }}" onerror="this.src='https://cdn-icons-png.flaticon.com/512/616/616408.png'">
                         </div>
                         {% else %}
                         <div class="pet-avatar default">
                             <i class="fas fa-paw"></i>
                         </div>
                         {% endif %}
+                        
                         <div class="pet-title">
                             <h2>{{ pet.nome_pet }}</h2>
                             <span class="pet-badge">{{ pet.especie }}</span>
                         </div>
                         <div class="pet-actions">
-                            <button class="btn-icon btn-edit" data-pet-id="{{ pet.pet_id }}">
+                            <button class="btn-icon btn-edit">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn-icon btn-delete" data-pet-id="{{ pet.pet_id }}">
+                            <button class="btn-icon btn-delete">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -84,286 +98,189 @@
                         </div>
                         <div class="detail-item">
                             <i class="fas fa-weight"></i>
-                            <span>
-                                {{ pet.peso or '?' }} kg
-                            </span>
+                            <span>{{ pet.peso or '?' }} kg</span>
                         </div>
                     </div>
                 </div>
                 {% endfor %}
             {% else %}
                 <div class="empty-state">
-                    <div class="empty-icon">
-                        <i class="fas fa-paw"></i>
-                    </div>
+                    <div class="empty-icon"><i class="fas fa-paw"></i></div>
                     <h3>Nenhum pet cadastrado</h3>
                     <p>Você ainda não cadastrou nenhum animal de estimação</p>
-                    <button id="btn-add-first-pet" class="btn-primary">
-                        <i class="fas fa-plus"></i> Adicionar Primeiro Pet
-                    </button>
                 </div>
             {% endif %}
         </div>
     </div>
 
-    <!-- Modal para adicionar/editar pet -->
-    <div id="modal-pet" class="modal">
+    <div id="modal-pet" class="modal" style="display: none;">
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2 id="modal-titulo">Adicionar Novo Pet</h2>
             <form id="form-pet" enctype="multipart/form-data">
                 <input type="hidden" id="pet-id" name="pet_id">
                 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="foto-pet"><i class="fas fa-camera"></i> Foto do Pet</label>
-                        <div class="file-upload">
-                            <input type="file" id="foto-pet" name="foto" accept="image/*">
-                            <label for="foto-pet" class="btn-file">
-                                <i class="fas fa-upload"></i> Selecionar Imagem
-                            </label>
-                            <div id="file-name">Nenhum arquivo selecionado</div>
-                        </div>
-                        <div id="preview-container" class="preview-container">
-                            <img id="preview-image" src="" alt="Pré-visualização">
-                        </div>
-                    </div>
+                <div class="form-group">
+                    <label for="foto-pet">Foto do Pet</label>
+                    <input type="file" id="foto-pet" name="foto" accept="image/*">
                 </div>
                 
                 <div class="form-group">
-                    <label for="nome-pet"><i class="fas fa-paw"></i> Nome do Pet</label>
-                    <input type="text" id="nome-pet" name="nome_pet" placeholder="Ex: Rex, Luna" required>
+                    <label for="nome-pet">Nome do Pet</label>
+                    <input type="text" id="nome-pet" name="nome_pet" required>
                 </div>
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="especie"><i class="fas fa-dog"></i> Espécie</label>
+                        <label for="especie">Espécie</label>
                         <select id="especie" name="especie" required>
                             <option value="">Selecione</option>
                             <option value="Cachorro">Cachorro</option>
                             <option value="Gato">Gato</option>
                             <option value="Pássaro">Pássaro</option>
                             <option value="Roedor">Roedor</option>
-                            <option value="Réptil">Réptil</option>
                             <option value="Outro">Outro</option>
                         </select>
                     </div>
-                    
                     <div class="form-group">
-                        <label for="raca"><i class="fas fa-dna"></i> Raça</label>
-                        <input type="text" id="raca" name="raca" placeholder="Ex: Labrador, Siamês">
+                        <label for="raca">Raça</label>
+                        <input type="text" id="raca" name="raca">
                     </div>
                 </div>
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="data-nascimento"><i class="fas fa-birthday-cake"></i> Data de Nascimento</label>
+                        <label for="data-nascimento">Nascimento</label>
                         <input type="date" id="data-nascimento" name="data_nascimento">
                     </div>
-                    
                     <div class="form-group">
-                        <label><i class="fas fa-venus-mars"></i> Sexo</label>
-                        <div class="radio-group">
-                            <label class="radio-option">
-                                <input type="radio" name="sexo" value="M" required>
-                                <span class="radio-custom"></span>
-                                Macho
-                            </label>
-                            <label class="radio-option">
-                                <input type="radio" name="sexo" value="F" required>
-                                <span class="radio-custom"></span>
-                                Fêmea
-                            </label>
+                        <label>Sexo</label>
+                        <div>
+                            <input type="radio" name="sexo" value="M" id="sexoM"> <label for="sexoM">Macho</label>
+                            <input type="radio" name="sexo" value="F" id="sexoF"> <label for="sexoF">Fêmea</label>
                         </div>
                     </div>
                 </div>
                 
                 <div class="form-group">
-                    <label for="peso"><i class="fas fa-weight"></i> Peso (kg)</label>
-                    <input type="number" id="peso" name="peso" step="0.1" min="0" placeholder="Ex: 5.2">
+                    <label for="peso">Peso (kg)</label>
+                    <input type="number" id="peso" name="peso" step="0.1">
                 </div>
                 
                 <div class="form-footer">
-                    <button type="submit" class="btn-primary">
-                        <i class="fas fa-save"></i> Salvar Pet
-                    </button>
+                    <button type="submit" class="btn-primary">Salvar Pet</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <style>
+        /* CSS Básico para o Modal funcionar */
+        .modal { position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: #fff; margin: 10% auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 500px; position: relative; }
+        .close { float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+        .form-group input[type="text"], .form-group input[type="date"], .form-group input[type="number"], select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .btn-primary { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1rem; }
+        .btn-primary:hover { background: #218838; }
+    </style>
+
     <script>
-        // Elementos DOM
+        // Elementos
         const modal = document.getElementById('modal-pet');
         const btnAdicionar = document.getElementById('btn-adicionar-pet');
-        const btnAddFirst = document.getElementById('btn-add-first-pet');
         const spanFechar = document.querySelector('.close');
         const formPet = document.getElementById('form-pet');
         const modalTitulo = document.getElementById('modal-titulo');
-        const petsGrid = document.querySelector('.pets-grid');
-        const fileInput = document.getElementById('foto-pet');
-        const fileName = document.getElementById('file-name');
-        const previewContainer = document.getElementById('preview-container');
-        const previewImage = document.getElementById('preview-image');
 
-        // Botões para abrir modal
-        if (btnAdicionar) btnAdicionar.addEventListener('click', openModal);
-        if (btnAddFirst) btnAddFirst.addEventListener('click', openModal);
-        
-        function openModal() {
+        // Abrir Modal (Adicionar)
+        btnAdicionar.onclick = function() {
             formPet.reset();
             document.getElementById('pet-id').value = '';
             modalTitulo.textContent = 'Adicionar Novo Pet';
             modal.style.display = 'block';
-            previewContainer.style.display = 'none';
-            fileName.textContent = 'Nenhum arquivo selecionado';
         }
 
-        // Fechar modal
-        spanFechar.addEventListener('click', closeModal);
-        window.addEventListener('click', (event) => {
-            if (event.target === modal) closeModal();
-        });
-        
-        function closeModal() {
-            modal.style.display = 'none';
-        }
+        // Fechar Modal
+        spanFechar.onclick = function() { modal.style.display = 'none'; }
+        window.onclick = function(event) { if (event.target == modal) modal.style.display = 'none'; }
 
-        // Gerenciar seleção de arquivo
-        fileInput.addEventListener('change', function() {
-            if (this.files && this.files[0]) {
-                fileName.textContent = this.files[0].name;
+        // Botão EDITAR - Agora usa os data-attributes (Muito mais seguro)
+        document.querySelectorAll('.btn-edit').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const card = this.closest('.pet-card');
                 
-                // Mostrar pré-visualização
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    previewImage.src = e.target.result;
-                    previewContainer.style.display = 'block';
-                }
-                reader.readAsDataURL(this.files[0]);
-            } else {
-                fileName.textContent = 'Nenhum arquivo selecionado';
-                previewContainer.style.display = 'none';
-            }
-        });
+                // Pega os dados diretos do HTML (data-attributes)
+                document.getElementById('pet-id').value = card.dataset.petId;
+                document.getElementById('nome-pet').value = card.dataset.nome;
+                document.getElementById('especie').value = card.dataset.especie;
+                document.getElementById('raca').value = card.dataset.raca;
+                document.getElementById('data-nascimento').value = card.dataset.nascimento; // Formato YYYY-MM-DD já vem pronto
+                document.getElementById('peso').value = card.dataset.peso;
 
-        // Abrir modal para editar
-        document.addEventListener('click', function(e) {
-            const btnEditar = e.target.closest('.btn-edit');
-            if (btnEditar) {
-                const petId = btnEditar.getAttribute('data-pet-id');
-                const petCard = document.querySelector(`.pet-card[data-pet-id="${petId}"]`);
-                
-                if (!petCard) return;
-                
-                // Preencher o formulário com os dados do pet
-                const nomePet = petCard.querySelector('h2').textContent;
-                const especie = petCard.querySelector('.pet-badge').textContent;
-                const raca = petCard.querySelector('.detail-item:nth-child(1) span').textContent;
-                const dataNasc = petCard.querySelector('.detail-item:nth-child(2) span').textContent;
-                const sexo = petCard.querySelector('.detail-item:nth-child(3) span').textContent.includes('Macho') ? 'M' : 'F';
-                const peso = petCard.querySelector('.detail-item:nth-child(4) span').textContent.replace(' kg', '').trim();
-
-                document.getElementById('pet-id').value = petId;
-                document.getElementById('nome-pet').value = nomePet;
-                document.getElementById('especie').value = especie;
-                document.getElementById('raca').value = raca === 'Raça não informada' ? '' : raca;
-                
-                if (dataNasc !== 'Nascimento não informado') {
-                    const partes = dataNasc.split('/');
-                    const dataISO = `${partes[2]}-${partes[1]}-${partes[0]}`;
-                    document.getElementById('data-nascimento').value = dataISO;
-                } else {
-                    document.getElementById('data-nascimento').value = '';
-                }
-                
-                document.querySelector(`input[name="sexo"][value="${sexo}"]`).checked = true;
-                document.getElementById('peso').value = peso === '?' ? '' : peso;
-
-                // Resetar preview
-                previewContainer.style.display = 'none';
-                fileName.textContent = 'Nenhum arquivo selecionado';
-                fileInput.value = '';
+                // Seleciona o sexo
+                if (card.dataset.sexo === 'M') document.getElementById('sexoM').checked = true;
+                else if (card.dataset.sexo === 'F') document.getElementById('sexoF').checked = true;
 
                 modalTitulo.textContent = 'Editar Pet';
                 modal.style.display = 'block';
-            }
-        });
-
-        // Submeter formulário
-        formPet.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(this);
-            const petId = formData.get('pet_id');
-            const url = petId ? '/atualizar-pet' : '/adicionar-pet';
-            
-            fetch(url, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    modal.style.display = 'none';
-                    location.reload();
-                } else {
-                    alert('Erro: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Erro:', error);
-                alert('Erro ao salvar pet.');
             });
         });
 
-        // Excluir pet
-        document.addEventListener('click', function(e) {
-            const btnExcluir = e.target.closest('.btn-delete');
-            if (btnExcluir) {
-                const petId = btnExcluir.getAttribute('data-pet-id');
-                
-                if (confirm('Tem certeza que deseja excluir este pet? Esta ação não pode ser desfeita.')) {
+        // Botão EXCLUIR
+        document.querySelectorAll('.btn-delete').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const card = this.closest('.pet-card');
+                const petId = card.dataset.petId;
+
+                if(confirm('Tem certeza que deseja excluir este pet?')) {
                     fetch('/excluir-pet', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ pet_id: petId })
                     })
-                    .then(response => response.json())
+                    .then(res => res.json())
                     .then(data => {
-                        if (data.success) {
-                            const petCard = document.querySelector(`.pet-card[data-pet-id="${petId}"]`);
-                            if (petCard) {
-                                petCard.remove();
-                                
-                                if (!document.querySelector('.pet-card')) {
-                                    petsGrid.innerHTML = `
-                                        <div class="empty-state">
-                                            <div class="empty-icon">
-                                                <i class="fas fa-paw"></i>
-                                            </div>
-                                            <h3>Nenhum pet cadastrado</h3>
-                                            <p>Você ainda não cadastrou nenhum animal de estimação</p>
-                                            <button id="btn-add-first-pet" class="btn-primary">
-                                                <i class="fas fa-plus"></i> Adicionar Primeiro Pet
-                                            </button>
-                                        </div>
-                                    `;
-                                    document.getElementById('btn-add-first-pet').addEventListener('click', openModal);
-                                }
-                            }
+                        if(data.success) {
+                            card.remove();
+                            alert('Pet excluído com sucesso!');
+                            // Se não sobrar nenhum, recarregar para mostrar o empty state
+                            if(document.querySelectorAll('.pet-card').length === 0) location.reload();
                         } else {
-                            alert('Erro: ' + data.message);
+                            alert('Erro ao excluir: ' + data.message);
                         }
                     })
-                    .catch(error => {
-                        console.error('Erro:', error);
-                        alert('Erro ao excluir pet.');
-                    });
+                    .catch(err => console.error(err));
                 }
-            }
+            });
+        });
+
+        // Salvar (Adicionar ou Editar)
+        formPet.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const id = document.getElementById('pet-id').value;
+            const url = id ? '/atualizar-pet' : '/adicionar-pet';
+
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin' // garante envio de cookie/session
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    location.reload();
+                } else {
+                    alert('Erro: ' + (data.message || 'Erro desconhecido'));
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Erro no envio da imagem. Veja o console.');
+            });
         });
     </script>
 </body>

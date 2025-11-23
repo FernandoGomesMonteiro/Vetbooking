@@ -22,8 +22,9 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
 
 # Garantir que pastas existem
 os.makedirs('static/uploads/pets', exist_ok=True)
-os.makedirs('static/uploads/medicos', exist_ok=True) # Alterado para 'medicos'
+os.makedirs('static/uploads/medicos', exist_ok=True)
 os.makedirs('static/uploads/documentos', exist_ok=True)
+os.makedirs('static/uploads/clinicas', exist_ok=True)
 
 # --- BANCO DE DADOS ---
 
@@ -46,6 +47,8 @@ def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if 'user_id' not in session:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': 'Sessão expirada'}), 401
             flash('Você precisa estar logado para acessar esta página')
             return redirect(url_for('login_page'))
         return f(*args, **kwargs)
@@ -156,7 +159,7 @@ def dashboard():
     cursor = conn.cursor(dictionary=True)
     
     data = {
-        'user_name': session['user_name'],
+        'user_name': session.get('user_name'),
         'user_type': user_type,
         'user_since': datetime.datetime.now().strftime('%d/%m/%Y'),
         'activities': [],
@@ -168,14 +171,12 @@ def dashboard():
             data['user_type_display'] = 'Tutor de Pet'
             cursor.execute('SELECT data_cadastro FROM tutores WHERE tutor_id = %s', (user_id,))
             res = cursor.fetchone()
-            if res and res['data_cadastro']: 
+            if res and res['data_cadastro']:
                 data['user_since'] = res['data_cadastro'].strftime('%d/%m/%Y')
 
-            # Contar pets
             cursor.execute('SELECT COUNT(*) as count FROM pets WHERE tutor_id = %s', (user_id,))
             data['pets_count'] = cursor.fetchone()['count']
             
-            # Buscar próximas consultas (tabela agendamentos)
             cursor.execute('''
                 SELECT a.data_hora, c.razao_social as clinica_nome, p.nome_pet, m.nome_medico
                 FROM agendamentos a
@@ -194,11 +195,9 @@ def dashboard():
             if res and res['data_cadastro']:
                  data['user_since'] = res['data_cadastro'].strftime('%d/%m/%Y')
 
-            # Contar agendamentos
             cursor.execute('SELECT COUNT(*) as count FROM agendamentos WHERE medico_id = %s AND status = "agendado"', (user_id,))
             data['agendamentos_count'] = cursor.fetchone()['count']
             
-            # Consultas do médico
             cursor.execute('''
                 SELECT a.data_hora, p.nome_pet, t.nome_tutores
                 FROM agendamentos a
@@ -216,22 +215,44 @@ def dashboard():
 
         elif user_type == 'clinica':
             data['user_type_display'] = 'Clínica Veterinária'
-            cursor.execute('SELECT data_cadastro FROM clinicas WHERE clinica_id = %s', (user_id,))
+            cursor.execute('SELECT data_cadastro, razao_social FROM clinicas WHERE clinica_id = %s', (user_id,))
             res = cursor.fetchone()
-            if res and res['data_cadastro']:
+            if res and res.get('data_cadastro'):
                 data['user_since'] = res['data_cadastro'].strftime('%d/%m/%Y')
 
-            # Agendamentos da clínica
+            # número total de agendamentos agendados para a clínica
             cursor.execute('SELECT COUNT(*) as count FROM agendamentos WHERE clinica_id = %s AND status = "agendado"', (user_id,))
             data['agendamentos_count'] = cursor.fetchone()['count']
 
-            # Médicos associados (Via tabela medicos_clinicas)
+            # número de médicos vinculados
             cursor.execute('SELECT COUNT(*) as count FROM medicos_clinicas WHERE clinica_id = %s', (user_id,))
-            medicos = cursor.fetchone()
-            data['medicos_count'] = medicos['count'] if medicos else 0
+            medicos_cnt_row = cursor.fetchone()
+            data['medicos_count'] = medicos_cnt_row['count'] if medicos_cnt_row else 0
+
+            # listar médicos vinculados (para mostrar e editar)
+            cursor.execute('''
+                SELECT m.medico_id, m.nome_medico
+                FROM medicos m
+                JOIN medicos_clinicas mc ON m.medico_id = mc.medico_id
+                WHERE mc.clinica_id = %s
+                ORDER BY m.nome_medico
+            ''', (user_id,))
+            data['medicos'] = cursor.fetchall()
+
+            # buscar próximos agendamentos da clínica (com pet, tutor e médico)
+            cursor.execute('''
+                SELECT a.agendamento_id as id, a.data_hora, p.nome_pet, t.nome_tutores, m.nome_medico
+                FROM agendamentos a
+                JOIN pets p ON a.pet_id = p.pet_id
+                JOIN tutores t ON p.tutor_id = t.tutor_id
+                LEFT JOIN medicos m ON a.medico_id = m.medico_id
+                WHERE a.clinica_id = %s AND a.status = 'agendado'
+                ORDER BY a.data_hora ASC LIMIT 50
+            ''', (user_id,))
+            data['proximas_consultas'] = cursor.fetchall()
 
     except Exception as e:
-        print(f"Erro dashboard: {e}")
+        app.logger.error(f"Erro dashboard: {e}")
     finally:
         cursor.close()
         conn.close()
@@ -246,7 +267,6 @@ def submit_tutor():
         nome = request.form['full-name']
         email = request.form['email']
         senha = request.form['password']
-        # Campos opcionais para endereço
         endereco = request.form.get('address')
         cep = request.form.get('cep')
         telefone = request.form.get('phone')
@@ -254,13 +274,11 @@ def submit_tutor():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Verificar email duplicado
         cursor.execute('SELECT 1 FROM tutores WHERE email = %s', (email,))
         if cursor.fetchone():
             flash('Email já cadastrado')
             return redirect(url_for('cadastro_tutor_new_page'))
 
-        # Lógica de Endereço (se fornecido)
         endereco_id = None
         if endereco:
             cursor.execute(
@@ -271,7 +289,6 @@ def submit_tutor():
         
         senha_hash = generate_password_hash(senha)
         
-        # Inserir Tutor
         cursor.execute(
             'INSERT INTO tutores (nome_tutores, email, senha, endereco_id, data_cadastro) VALUES (%s, %s, %s, %s, NOW())',
             (nome, email, senha_hash, endereco_id)
@@ -348,7 +365,6 @@ def cadastrar_veterinario():
         especialidades_str = ','.join(especialidades)
         senha_hash = generate_password_hash(senha)
         
-        # Upload Foto
         foto = None
         if 'foto' in request.files:
             f = request.files['foto']
@@ -359,12 +375,10 @@ def cadastrar_veterinario():
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Verifica email na tabela medicos
         cursor.execute('SELECT 1 FROM medicos WHERE email = %s', (email,))
         if cursor.fetchone(): 
             return jsonify({'success': False, 'message': 'Email já cadastrado'})
 
-        # Inserir na tabela MEDICOS
         cursor.execute(
             'INSERT INTO medicos (nome_medico, email, senha, crmv, uf, especialidades, descricao, foto, data_cadastro) '
             'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())',
@@ -372,7 +386,6 @@ def cadastrar_veterinario():
         )
         medico_id = cursor.lastrowid
         
-        # Vincular à Clínica na tabela MEDICOS_CLINICAS
         if clinica_id:
             cursor.execute(
                 'INSERT INTO medicos_clinicas (medico_id, clinica_id, data_cadastro) VALUES (%s, %s, NOW())',
@@ -419,6 +432,10 @@ def adicionar_pet():
         sexo = request.form.get('sexo', '')
         peso = request.form.get('peso')
 
+        # Converter strings vazias para None se necessário, ou manter vazias
+        if not nasc: nasc = None
+        if not peso: peso = None
+
         foto = None
         if 'foto' in request.files:
             f = request.files['foto']
@@ -446,13 +463,15 @@ def adicionar_pet():
 def atualizar_pet():
     pet_id = request.form['pet_id']
     nome = request.form['nome_pet']
-    # Recuperar outros campos...
     especie = request.form['especie']
-    raca = request.form.get('raca')
+    raca = request.form.get('raca', '')
     nasc = request.form.get('data_nascimento')
-    sexo = request.form.get('sexo')
+    sexo = request.form.get('sexo', '')
     peso = request.form.get('peso')
     
+    if not nasc: nasc = None
+    if not peso: peso = None
+
     foto = None
     if 'foto' in request.files:
         f = request.files['foto']
@@ -463,13 +482,14 @@ def atualizar_pet():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        # Verifica dono
+        # Verifica dono e pega foto antiga
         cursor.execute('SELECT tutor_id, foto FROM pets WHERE pet_id = %s', (pet_id,))
         pet = cursor.fetchone()
         
         if not pet or pet['tutor_id'] != session['user_id']:
             return jsonify({'success': False, 'message': 'Permissão negada'}), 403
         
+        # Mantém foto antiga se não enviou nova
         if not foto: foto = pet['foto']
         
         cursor.execute(
@@ -478,8 +498,43 @@ def atualizar_pet():
         )
         conn.commit()
         return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
     finally:
         conn.close()
+
+@app.route('/excluir-pet', methods=['POST'])
+@login_required
+def excluir_pet():
+    try:
+        data = request.get_json()
+        pet_id = data.get('pet_id')
+        tutor_id = session['user_id']
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Verifica se o pet pertence mesmo ao usuário logado
+        cursor.execute('SELECT foto FROM pets WHERE pet_id = %s AND tutor_id = %s', (pet_id, tutor_id))
+        pet = cursor.fetchone()
+
+        if not pet:
+            return jsonify({'success': False, 'message': 'Pet não encontrado ou não autorizado'}), 403
+
+        # Remove agendamentos futuros para não dar erro de chave estrangeira
+        cursor.execute('DELETE FROM agendamentos WHERE pet_id = %s', (pet_id,))
+        
+        # Remove o pet
+        cursor.execute('DELETE FROM pets WHERE pet_id = %s', (pet_id,))
+        conn.commit()
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        if 'conn' in locals(): conn.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        if 'conn' in locals(): conn.close()
 
 # --- AGENDAMENTOS ---
 
@@ -515,7 +570,6 @@ def get_profissionais_da_clinica(clinica_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # JOIN para pegar médicos vinculados à clínica via tabela medicos_clinicas
     cursor.execute('''
         SELECT m.medico_id as profissional_id, m.nome_medico as nome_profissional
         FROM medicos m
@@ -535,12 +589,11 @@ def salvar_agendamento():
     try:
         pet_id = request.form.get('pet_id')
         clinica_id = request.form.get('clinica_id')
-        medico_id = request.form.get('profissional_id') or None # Pode ser nulo
+        medico_id = request.form.get('profissional_id') or None 
         data = request.form.get('data_consulta')
         hora = request.form.get('hora_consulta')
         obs = request.form.get('observacoes', '')
         
-        # Validar data futura
         data_hora_str = f"{data} {hora}"
         dt = datetime.datetime.strptime(data_hora_str, "%Y-%m-%d %H:%M")
         if dt <= datetime.datetime.now():
@@ -549,7 +602,6 @@ def salvar_agendamento():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Validar disponibilidade na tabela AGENDAMENTOS
         cursor.execute(
             "SELECT 1 FROM agendamentos WHERE clinica_id=%s AND data_hora=%s AND status != 'cancelado'", 
             (clinica_id, data_hora_str)
@@ -557,7 +609,6 @@ def salvar_agendamento():
         if cursor.fetchone():
              return jsonify({'success': False, 'message': 'Horário indisponível'})
 
-        # Inserir
         cursor.execute(
             'INSERT INTO agendamentos (pet_id, clinica_id, medico_id, data_hora, observacoes, status, data_cadastro) '
             'VALUES (%s, %s, %s, %s, %s, "agendado", NOW())',
@@ -570,6 +621,334 @@ def salvar_agendamento():
         return jsonify({'success': False, 'message': str(e)}), 500
     finally:
         if 'conn' in locals(): conn.close()
+
+@app.route('/api/clinicas')
+def api_clinicas():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute('''
+            SELECT clinica_id, razao_social, cidade, uf, telefone, cep, 
+                   imagem, descricao 
+            FROM clinicas
+        ''')
+        
+        rows = cursor.fetchall()
+        lista = []
+        
+        for r in rows:
+            cidade = r.get('cidade') or ''
+            uf = r.get('uf')
+            localizacao = f"{cidade}, {uf}" if uf else cidade
+
+            imagem_nome = r.get('imagem')
+            if imagem_nome and os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'].replace('pets', 'clinicas'), imagem_nome)):
+                imagem_url = f"/static/uploads/clinicas/{imagem_nome}"
+            else:
+                imagem_url = "/static/img/default-clinic.jpg"
+
+            lista.append({
+                'id': r.get('clinica_id'),
+                'nome': r.get('razao_social'),
+                'localizacao': localizacao,
+                'telefone': r.get('telefone'),
+                'preco': "Sob consulta",
+                'avaliacao': 4.5,
+                'imagem': imagem_url,
+                'caracteristicas': r.get('descricao') or 'Clínica veterinária completa.'
+            })
+            
+        cursor.close()
+        conn.close()
+        return jsonify(lista)
+        
+    except Exception as e:
+        app.logger.error(f"Erro API /api/clinicas: {e}")
+        return jsonify({'error': 'Erro interno'}), 500
+
+@app.route('/clinica/<int:clinica_id>')
+def clinica_page(clinica_id):
+    # Passa apenas o ID para o template, o JS busca os dados na API
+    return render_template('pages/clinica.html', clinica_id=clinica_id)
+
+@app.route('/api/medicos')
+def api_medicos():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        if session.get('user_type') == 'clinica' and session.get('user_id'):
+            cursor.execute('''
+                SELECT m.medico_id, m.nome_medico, m.crmv, m.especialidades, m.descricao, m.foto
+                FROM medicos m
+                JOIN medicos_clinicas mc ON m.medico_id = mc.medico_id
+                WHERE mc.clinica_id = %s
+                ORDER BY m.nome_medico
+            ''', (session['user_id'],))
+        else:
+            cursor.execute('SELECT medico_id, nome_medico, crmv, especialidades, descricao, foto FROM medicos ORDER BY nome_medico')
+
+        rows = cursor.fetchall()
+        lista = []
+        for r in rows:
+            lista.append({
+                'id': r.get('medico_id'),
+                'nome': r.get('nome_medico'),
+                'crmv': r.get('crmv'),
+                'especialidades': r.get('especialidades') or '',
+                'descricao': r.get('descricao') or '',
+                'foto': (f"/static/uploads/medicos/{r.get('foto')}" if r.get('foto') else "/static/img/default-user.jpg")
+            })
+        cursor.close()
+        conn.close()
+        return jsonify(lista)
+    except Exception as e:
+        app.logger.error(f"Erro API /api/medicos: {e}")
+        return jsonify([]), 500
+
+@app.route('/pages/veterinario.html')
+def veterinario_page():
+    return render_template('pages/veterinario.html')
+
+@app.route('/editar-veterinario/<int:medico_id>', methods=['GET', 'POST'])
+@login_required
+def editar_veterinario(medico_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        if request.method == 'POST':
+            nome = request.form.get('nome_medico')
+            crmv = request.form.get('crmv')
+            especialidades = request.form.get('especialidades', '')
+            descricao = request.form.get('descricao', '')
+
+            foto_nome = None
+            if 'foto' in request.files:
+                f = request.files['foto']
+                if f and allowed_file(f.filename):
+                    foto_nome = secure_filename(f"med_{uuid.uuid4().hex}.{f.filename.rsplit('.',1)[1]}")
+                    f.save(os.path.join('static/uploads/medicos', foto_nome))
+
+            partes = ['nome_medico=%s','crmv=%s','especialidades=%s','descricao=%s']
+            valores = [nome, crmv, especialidades, descricao]
+            if foto_nome:
+                partes.append('foto=%s')
+                valores.append(foto_nome)
+            valores.append(medico_id)
+            sql = f"UPDATE medicos SET {', '.join(partes)} WHERE medico_id = %s"
+            cursor.execute(sql, tuple(valores))
+            conn.commit()
+            return redirect(url_for('veterinario_page'))
+
+        cursor.execute('SELECT medico_id, nome_medico, crmv, especialidades, descricao, foto FROM medicos WHERE medico_id = %s', (medico_id,))
+        medico = cursor.fetchone()
+        if not medico:
+            return "Médico não encontrado", 404
+        return render_template('pages/editar-veterinario.html', medico=medico)
+    except Exception as e:
+        app.logger.error(f"Erro editar_veterinario: {e}")
+        return "Erro interno", 500
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/pages/editar-perfil.html')
+@login_required
+def editar_perfil_page():
+    user_id = session.get('user_id')
+    user_type = session.get('user_type')
+    data = {
+        'user_name': session.get('user_name'),
+        'user_type': user_type,
+        'user_type_display': '',
+        'user_since': datetime.datetime.now().strftime('%d/%m/%Y')
+    }
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        if user_type == 'tutor':
+            cursor.execute('SELECT tutor_id, nome_tutores, email, data_cadastro, endereco_id, data_nascimento FROM tutores WHERE tutor_id = %s', (user_id,))
+            tutor = cursor.fetchone() or {}
+            data['user_type_display'] = 'Tutor de Pet'
+            if tutor.get('data_cadastro'):
+                data['user_since'] = tutor['data_cadastro'].strftime('%d/%m/%Y')
+
+            endereco = None
+            if tutor.get('endereco_id'):
+                cursor.execute('SELECT endereco, cep, telefone FROM endereco WHERE id_endereco = %s', (tutor['endereco_id'],))
+                endereco = cursor.fetchone()
+            
+            tutor['endereco'] = endereco.get('endereco') if endereco else ''
+            tutor['cep'] = endereco.get('cep') if endereco else ''
+            tutor['telefone'] = endereco.get('telefone') if endereco else ''
+            data['tutor'] = tutor
+
+        elif user_type == 'clinica':
+            cursor.execute('SELECT * FROM clinicas WHERE clinica_id = %s', (user_id,))
+            clinica = cursor.fetchone() or {}
+            data['user_type_display'] = 'Clínica Veterinária'
+            if clinica.get('data_cadastro'):
+                data['user_since'] = clinica['data_cadastro'].strftime('%d/%m/%Y')
+            data['clinica'] = clinica
+
+        else:  # medico
+            cursor.execute('SELECT medico_id, nome_medico, email, data_cadastro FROM medicos WHERE medico_id = %s', (user_id,))
+            medico = cursor.fetchone() or {}
+            data['user_type_display'] = 'Médico Veterinário'
+            if medico.get('data_cadastro'):
+                data['user_since'] = medico['data_cadastro'].strftime('%d/%m/%Y')
+            data['medico'] = medico
+
+    finally:
+        cursor.close()
+        conn.close()
+
+    return render_template('pages/editar-perfil.html', **data)
+
+@app.route('/editar-perfil', methods=['POST'])
+@login_required
+def editar_perfil_submit():
+    user_id = session.get('user_id')
+    user_type = session.get('user_type')
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        display_name = None
+        email = request.form.get('email')
+
+        if user_type == 'tutor':
+            nome = request.form.get('nome')
+            data_nascimento = request.form.get('data_nascimento') or None
+            # Logica para endereco se necessario
+            cursor.execute(
+                'UPDATE tutores SET nome_tutores=%s, email=%s, data_nascimento=%s WHERE tutor_id=%s',
+                (nome, email, data_nascimento, user_id)
+            )
+            display_name = nome
+
+        elif user_type == 'clinica':
+            razao = request.form.get('razao_social')
+            telefone = request.form.get('telefone')
+            cep = request.form.get('cep')
+            cidade = request.form.get('cidade')
+            uf = request.form.get('uf')
+            cursor.execute(
+                'UPDATE clinicas SET razao_social=%s, email=%s, telefone=%s, cep=%s, cidade=%s, uf=%s WHERE clinica_id=%s',
+                (razao, email, telefone, cep, cidade, uf, user_id)
+            )
+            display_name = razao
+
+        else:  # medico
+            nome_medico = request.form.get('nome_medico')
+            crmv = request.form.get('crmv')
+            especialidades = request.form.get('especialidades')
+            descricao = request.form.get('descricao')
+            cursor.execute(
+                'UPDATE medicos SET nome_medico=%s, email=%s, crmv=%s, especialidades=%s, descricao=%s WHERE medico_id=%s',
+                (nome_medico, email, crmv, especialidades, descricao, user_id)
+            )
+            display_name = nome_medico
+
+        conn.commit()
+
+        if display_name:
+            session['user_name'] = display_name
+
+        return jsonify({'success': True, 'redirect': url_for('dashboard')})
+    except Exception as e:
+        if conn: conn.rollback()
+        app.logger.error(f"Erro ao salvar perfil: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if conn: conn.close()
+
+@app.route('/api/consultas')
+@login_required
+def api_consultas():
+    user_id = session.get('user_id')
+    user_type = session.get('user_type')
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        if user_type == 'tutor':
+            cursor.execute('''
+                SELECT a.agendamento_id AS id, a.data_hora, a.status, a.observacoes,
+                       p.pet_id, p.nome_pet,
+                       c.clinica_id, c.razao_social AS clinica_nome, c.cidade, c.uf, c.cep, c.telefone,
+                       m.medico_id, m.nome_medico
+                FROM agendamentos a
+                JOIN pets p ON a.pet_id = p.pet_id
+                JOIN clinicas c ON a.clinica_id = c.clinica_id
+                LEFT JOIN medicos m ON a.medico_id = m.medico_id
+                WHERE p.tutor_id = %s
+                ORDER BY a.data_hora DESC
+            ''', (user_id,))
+        elif user_type == 'medico':
+            cursor.execute('''
+                SELECT a.agendamento_id AS id, a.data_hora, a.status, a.observacoes,
+                       p.pet_id, p.nome_pet,
+                       c.clinica_id, c.razao_social AS clinica_nome, c.cidade, c.uf, c.cep, c.telefone,
+                       t.tutor_id, t.nome_tutores
+                FROM agendamentos a
+                JOIN pets p ON a.pet_id = p.pet_id
+                JOIN clinicas c ON a.clinica_id = c.clinica_id
+                JOIN tutores t ON p.tutor_id = t.tutor_id
+                WHERE a.medico_id = %s
+                ORDER BY a.data_hora DESC
+            ''', (user_id,))
+        else:  # clinica
+            cursor.execute('''
+                SELECT a.agendamento_id AS id, a.data_hora, a.status, a.observacoes,
+                       p.pet_id, p.nome_pet,
+                       t.tutor_id, t.nome_tutores,
+                       m.medico_id, m.nome_medico,
+                       c.clinica_id, c.razao_social AS clinica_nome, c.cidade, c.uf, c.cep, c.telefone
+                FROM agendamentos a
+                JOIN pets p ON a.pet_id = p.pet_id
+                JOIN tutores t ON p.tutor_id = t.tutor_id
+                LEFT JOIN medicos m ON a.medico_id = m.medico_id
+                JOIN clinicas c ON a.clinica_id = c.clinica_id
+                WHERE a.clinica_id = %s
+                ORDER BY a.data_hora DESC
+            ''', (user_id,))
+
+        rows = cursor.fetchall()
+        lista = []
+        for r in rows:
+            cidade = r.get('cidade') or ''
+            uf = r.get('uf') or ''
+            cep = r.get('cep') or ''
+            localizacao = f"{cidade}{', ' + uf if uf else ''}"
+            if cep:
+                localizacao = f"{localizacao} — CEP {cep}" if localizacao else f"CEP {cep}"
+
+            lista.append({
+                'id': r.get('id'),
+                'data_hora': r.get('data_hora').strftime('%Y-%m-%d %H:%M') if r.get('data_hora') else None,
+                'status': r.get('status'),
+                'observacoes': r.get('observacoes') or '',
+                'nome_pet': r.get('nome_pet'),
+                'pet_id': r.get('pet_id'),
+                'clinica_id': r.get('clinica_id'),
+                'clinica_nome': r.get('clinica_nome'),
+                'clinica_endereco': localizacao,
+                'clinica_telefone': r.get('telefone'),
+                'nome_medico': r.get('nome_medico'),
+                'tutor_nome': r.get('nome_tutores') or None,
+            })
+        cursor.close()
+        conn.close()
+        return jsonify(lista)
+    except Exception as e:
+        app.logger.error(f"Erro API /api/consultas: {e}")
+        return jsonify([]), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -18,8 +18,8 @@
             </a>
             <div class="nav-links">
                 <a href="../index.html" class="nav-link">Página Inicial</a>
-                <a href="./catalogo-clinicas.html" class="nav-link">Clínicas</a>
-                <a href="#" class="nav-link">Como Funciona</a>
+                <a href="../pages/catalogo-clinicas.html" class="nav-link">Clínicas</a>
+                <a href="../pages/como-funciona.html" class="nav-link">Como Funciona</a>
             </div>
             <div class="nav-auth">
                 <div class="user-menu">
@@ -30,10 +30,8 @@
                         </div>
                     </div>
                     <div class="user-dropdown">
-                        <a href="./dashboard.html" class="dropdown-item active">
-                            <i class="fas fa-tachometer-alt"></i> Dashboard
-                        </a>
-                        <a href="./editar-perfil.html" class="dropdown-item">
+                      
+                        <a href="../pages/editar-perfil.html" class="dropdown-item">
                             <i class="fas fa-user"></i> Meu Perfil
                         </a>
                         <a href="/logout" class="dropdown-item">
@@ -73,9 +71,9 @@
                         <i class="fas fa-calendar-alt"></i>
                     </div>
                     <div class="card-content">
-                        <h3 class="card-title">Próximas Consultas</h3>
+                        <h3 class="card-title">Consultas Agendadas</h3>
                         <p class="card-value">{{ agendamentos_count }}</p>
-                        <a href="#" class="card-link">Ver detalhes</a>
+                        <a href="../pages/consultas.html" class="card-link">Ver detalhes</a>
                     </div>
                 </div>
                 
@@ -97,9 +95,9 @@
                         <i class="fas fa-heart"></i>
                     </div>
                     <div class="card-content">
-                        <h3 class="card-title">Favoritos</h3>
+                        <h3 class="card-title">Marcar Consulta</h3>
                         <p class="card-value">{{ favoritos_count }}</p>
-                        <a href="#" class="card-link">Ver favoritos</a>
+                        <a href="/pages/agendar-consulta.html" class="card-link">Marcar Consulta</a>
                     </div>
                 </div>
             </div>
@@ -117,7 +115,7 @@
                     <div class="card-content">
                         <h3 class="card-title">Consultas Agendadas</h3>
                         <p class="card-value">{{ agendamentos_count }}</p>
-                        <a href="#" class="card-link">Ver agenda</a>
+                        <a href="/pages/consultas-clinicas.html" class="card-link">Ver agenda</a>
                     </div>
                 </div>
                 
@@ -126,9 +124,9 @@
                         <i class="fas fa-user-md"></i>
                     </div>
                     <div class="card-content">
-                        <h3 class="card-title">Médicos Associados</h3>
+                        <h3 class="card-title">Criar Veterinário</h3>
                         <p class="card-value">{{ medicos_count }}</p>
-                        <a href="#" class="card-link">Ver médicos</a>
+                        <a href="/pages/cadastro-veterinario.html" class="card-link">Criar Veterinário </a>
                     </div>
                 </div>
                 
@@ -137,39 +135,71 @@
                         <i class="fas fa-chart-line"></i>
                     </div>
                     <div class="card-content">
-                        <h3 class="card-title">Estatísticas</h3>
+                        <h3 class="card-title">Médicos Associados</h3>
                         <p class="card-value">Ver dados</p>
-                        <a href="#" class="card-link">Acessar</a>
+                        <a href="/pages/veterinario.html" class="card-link">Acessar</a>
                     </div>
                 </div>
             </div>
             {% endif %}
         </section>
         
-        <!-- Recent Activity Section -->
-        <section class="recent-activity">
-            <h2 class="section-title">Atividades Recentes</h2>
-            <div class="activity-list">
-                {% if activities|length > 0 %}
-                    {% for activity in activities %}
-                    <div class="activity-item">
-                        <div class="activity-icon">
-                            <i class="{{ activity.icon }}"></i>
-                        </div>
-                        <div class="activity-content">
-                            <p class="activity-text">{{ activity.text }}</p>
-                            <p class="activity-date">{{ activity.date }}</p>
-                        </div>
+        <!-- Próximas Consultas (inserido) -->
+        <section class="upcoming-consultations">
+            <h2 class="section-title">Próximas Consultas</h2>
+            {% if proximas_consultas and proximas_consultas|length > 0 %}
+            <div class="consultations-list">
+                {% for consulta in proximas_consultas %}
+                <div class="consultation-item">
+                    <div class="consultation-datetime">
+                        {{ consulta.data_hora.strftime('%d/%m/%Y %H:%M') }}
                     </div>
-                    {% endfor %}
-                {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-info-circle"></i>
-                    <p>Nenhuma atividade recente para mostrar.</p>
+                    <div class="consultation-details">
+                        <strong>{{ consulta.nome_pet }}</strong>
+                        {% if consulta.nome_tutores %}
+                            — Tutor: {{ consulta.nome_tutores }}
+                        {% endif %}
+                        {% if consulta.nome_medico %}
+                            <span> (Dr. {{ consulta.nome_medico }})</span>
+                        {% endif %}
+                    </div>
+                    {% if user_type == 'clinica' %}
+                    <div class="consultation-actions">
+                        <a href="/editar-agendamento/{{ consulta.id }}" class="btn-small">Editar</a>
+                        <a href="/detalhe-consulta/{{ consulta.id }}" class="btn-small">Detalhes</a>
+                    </div>
+                    {% endif %}
                 </div>
-                {% endif %}
+                {% endfor %}
             </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-info-circle"></i>
+                <p>Nenhuma consulta agendada.</p>
+            </div>
+            {% endif %}
         </section>
+
+        <!-- Médicos associados (apenas para clínica) -->
+        {% if user_type == 'clinica' %}
+        <section class="clinic-medicos">
+            <h2 class="section-title">Médicos Associados</h2>
+            {% if medicos and medicos|length > 0 %}
+            <ul class="medicos-list">
+                {% for m in medicos %}
+                <li>
+                    {{ m.nome_medico }}
+                    <a href="{{ url_for('editar_veterinario', medico_id=m.medico_id) }}" class="btn-small">Editar</a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>Nenhum médico associado.</p>
+            {% endif %}
+        </section>
+        {% endif %}
+
+
     </main>
 
     <!-- Footer -->

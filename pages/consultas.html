@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Minhas Consultas - VetBooking</title>
+  <link rel="stylesheet" href="../styles/base.css">
+  <link rel="stylesheet" href="../styles/consultas.css">
+
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="/index.html" class="logo">
+        <img src="../img/Imagem do WhatsApp de 2025-09-17 à(s) 15.28.08_75e67870.jpg" alt="VetBooking" class="logo-img">
+        <span class="logo-text">VetBooking</span>
+      </a>
+
+
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/pages/consultas.html" class="active">Consultas</a>
+        <a href="/pages/catalogo-clinicas.html">Clínicas</a>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="btn btn-primary" id="btn-new-agendamento">+ Agendar</button>
+
+        
+      </div>
+    </div>
+  </header>
+
+  <main class="container" style="max-width:1000px;margin:28px auto;">
+    <h1>Minhas Consultas</h1>
+    <div id="consult-list">Carregando...</div>
+  </main>
+
+  <script>
+    async function loadConsultas(){
+      const el = document.getElementById('consult-list');
+      try {
+        const res = await fetch('/api/consultas', { credentials: 'same-origin' });
+        if (!res.ok) { el.textContent = 'Erro ao carregar consultas.'; return; }
+        const data = await res.json();
+        el.innerHTML = '';
+        if (!data || data.length === 0) { el.innerHTML = '<p>Nenhuma consulta encontrada.</p>'; return; }
+        data.forEach(c => {
+          const when = c.data_hora ? new Date(c.data_hora.replace(' ','T')) : null;
+          const item = document.createElement('div');
+          item.className = 'consulta-item';
+          item.innerHTML = `
+            <div class="consulta-dt">${when ? when.toLocaleString() : '-'}</div>
+            <div class="consulta-details">
+              <div><strong>${c.nome_pet || '-'}</strong> ${c.tutor_nome ? '— Tutor: ' + c.tutor_nome : ''}</div>
+              <div class="consulta-meta">
+                ${c.clinica_nome || ''}
+                ${c.nome_medico ? ' — Dr. ' + c.nome_medico : ''}
+                ${c.clinica_endereco ? '<br><small style="color:#6b7280;">' + c.clinica_endereco + '</small>' : ''}
+                ${c.clinica_telefone ? '<br><small style="color:#6b7280;">Tel: ' + c.clinica_telefone + '</small>' : ''}
+                <div style="margin-top:6px;color:#6b7280;">Status: ${c.status || ''}</div>
+              </div>
+            </div>`;
+          el.appendChild(item);
+        });
+      } catch (err) {
+        console.error(err);
+        el.textContent = 'Erro ao carregar consultas.';
+      }
+    }
+    document.addEventListener('DOMContentLoaded', loadConsultas);
+  </script>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', function(){
+    // mobile nav toggle
+    const toggle = document.getElementById('nav-toggle');
+    const nav = document.querySelector('.nav-links');
+    toggle && toggle.addEventListener('click', () => {
+      const shown = nav.style.display === 'flex';
+      nav.style.display = shown ? '' : 'flex';
+    });
+
+    // user dropdown
+    const userBtn = document.getElementById('user-btn');
+    const userDropdown = document.getElementById('user-dropdown');
+    if (userBtn && userDropdown) {
+      userBtn.addEventListener('click', (e) => {
+        const opened = userDropdown.hasAttribute('hidden') === false;
+        if (opened) {
+          userDropdown.setAttribute('hidden', '');
+          userBtn.setAttribute('aria-expanded','false');
+        } else {
+          userDropdown.removeAttribute('hidden');
+          userBtn.setAttribute('aria-expanded','true');
+        }
+      });
+      // fecha ao clicar fora
+      document.addEventListener('click', (ev) => {
+        if (!ev.target.closest('.user-menu')) {
+          userDropdown.setAttribute('hidden','');
+          userBtn.setAttribute('aria-expanded','false');
+        }
+      });
+    }
+
+    // botão Agendar (rapido)
+    const btnNew = document.getElementById('btn-new-agendamento');
+    btnNew && btnNew.addEventListener('click', () => { location.href = '/pages/agendar-consulta.html'; });
+
+  });
+  </script>
+</body>
+</html>
