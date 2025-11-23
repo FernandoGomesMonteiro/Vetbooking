@@ -5,6 +5,7 @@ import mysql.connector
 import datetime
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
 
 app = Flask(__name__, 
             static_folder='.', 
@@ -13,7 +14,19 @@ app = Flask(__name__,
 
 app.secret_key = 'vetbooking_secret_key'
 
-# Configuração do banco de dados MySQL
+# --- CONFIGURAÇÕES DE UPLOAD ---
+UPLOAD_FOLDER = 'static/uploads/pets'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
+
+# Garantir que pastas existem
+os.makedirs('static/uploads/pets', exist_ok=True)
+os.makedirs('static/uploads/medicos', exist_ok=True) # Alterado para 'medicos'
+os.makedirs('static/uploads/documentos', exist_ok=True)
+
+# --- BANCO DE DADOS ---
+
 def get_db_connection():
     conn = mysql.connector.connect(
         host='localhost',
@@ -23,29 +36,23 @@ def get_db_connection():
     )
     return conn
 
-# Inicialização do banco de dados
-def init_db():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    with open('bdVetBooking.sql') as f:
-        sql_script = f.read()
-        # Dividir o script em comandos individuais
-        commands = sql_script.split(';')
-        for command in commands:
-            if command.strip():
-                cursor.execute(command + ';')
-    conn.commit()
-    cursor.close()
-    conn.close()
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# Rotas para as páginas
-@app.route('/')
-def index():
-    return render_template('index.html')
+# --- LOGIN E AUTENTICAÇÃO ---
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Você precisa estar logado para acessar esta página')
+            return redirect(url_for('login_page'))
+        return f(*args, **kwargs)
+    return decorated
 
 @app.route('/check_login')
 def check_login():
-    from flask import jsonify
     if 'user_id' in session:
         return jsonify({
             'logged_in': True,
@@ -53,9 +60,61 @@ def check_login():
             'user_type': session.get('user_type', '')
         })
     else:
-        return jsonify({
-            'logged_in': False
-        })
+        return jsonify({'logged_in': False})
+
+@app.route('/login', methods=['POST'])
+def login():
+    email = request.form['email']
+    password = request.form['password']
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        # 1. Verificar Tabela TUTORES
+        cursor.execute('SELECT * FROM tutores WHERE email = %s', (email,))
+        tutor = cursor.fetchone()
+        if tutor and check_password_hash(tutor['senha'], password):
+            session['user_id'] = tutor['tutor_id']
+            session['user_type'] = 'tutor'
+            session['user_name'] = tutor['nome_tutores']
+            return redirect(url_for('dashboard'))
+        
+        # 2. Verificar Tabela MEDICOS
+        cursor.execute('SELECT * FROM medicos WHERE email = %s', (email,))
+        medico = cursor.fetchone()
+        if medico and check_password_hash(medico['senha'], password):
+            session['user_id'] = medico['medico_id']
+            session['user_type'] = 'medico'
+            session['user_name'] = medico['nome_medico']
+            return redirect(url_for('dashboard'))
+
+        # 3. Verificar Tabela CLINICAS
+        cursor.execute('SELECT * FROM clinicas WHERE email = %s', (email,))
+        clinica = cursor.fetchone()
+        if clinica and check_password_hash(clinica['senha'], password):
+            session['user_id'] = clinica['clinica_id']
+            session['user_type'] = 'clinica'
+            session['user_name'] = clinica['razao_social']
+            return redirect(url_for('dashboard'))
+        
+        flash('Email ou senha incorretos')
+        return redirect(url_for('login_page'))
+        
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('index'))
+
+# --- ROTAS DE PÁGINAS ---
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 @app.route('/pages/login.html')
 def login_page():
@@ -68,1436 +127,449 @@ def login_new_page():
 @app.route('/cadastro')
 def cadastro():
     return render_template('cadastro.html')
-# Rota para gerenciar pets
-@app.route('/gerenciar-pets')
-def gerenciar_pets():
-    if 'user_id' not in session or session['user_type'] != 'tutor':
-        flash('Acesso não autorizado')
-        return redirect(url_for('login_page'))
-    
-    user_id = session['user_id']
-    
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    # Buscar pets do tutor
-    cursor.execute('SELECT * FROM pets WHERE tutor_id = %s', (user_id,))
-    pets = cursor.fetchall()
-    
-    cursor.close()
-    conn.close()
-    
-    return render_template('pages/gerenciar-pets.html', pets=pets)
-
-
-# Configurações para upload de imagens
-UPLOAD_FOLDER = 'static/uploads/pets'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
-
-# Certifique-se de que a pasta de uploads existe
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-
-# Rota para adicionar pet
-@app.route('/adicionar-pet', methods=['POST'])
-def adicionar_pet():
-
-    if 'user_id' not in session or session['user_type'] != 'tutor':
-        return jsonify({'success': False, 'message': 'Acesso não autorizado'}), 403
-    
-    tutor_id = session['user_id']
-    nome_pet = request.form['nome_pet']
-    especie = request.form['especie']
-    raca = request.form.get('raca', '')
-    data_nascimento = request.form.get('data_nascimento')
-    sexo = request.form.get('sexo', '')  # Corrigido para usar get()
-    peso = request.form.get('peso')
-    
-    # Processar a foto
-    foto = None
-    if 'foto' in request.files:
-        file = request.files['foto']
-        if file.filename != '' and allowed_file(file.filename):
-            filename = secure_filename(f"{uuid.uuid4().hex}.{file.filename.rsplit('.', 1)[1].lower()}")
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            foto = filename
-
-        
-
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    try:
-        # VERIFICAÇÃO CRÍTICA: Tutor existe?
-        cursor.execute('SELECT 1 FROM tutores WHERE tutor_id = %s', (tutor_id,))
-        if not cursor.fetchone():
-            return jsonify({
-                'success': False, 
-                'message': f'Tutor não encontrado (ID: {tutor_id})'
-            }), 404
-        
-        # Inserir pet COM FOTO
-        cursor.execute(
-            'INSERT INTO pets (nome_pet, especie, raca, data_nascimento, sexo, peso, tutor_id, data_cadastro, foto) '
-            'VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), %s)',
-            (nome_pet, especie, raca, data_nascimento, sexo, peso, tutor_id, foto)  # Adicionado foto no final
-        )
-        conn.commit()
-        return jsonify({'success': True})
-    except mysql.connector.Error as err:
-        conn.rollback()
-        return jsonify({'success': False, 'message': str(err)}), 500
-    finally:
-        cursor.close()
-        conn.close()
-
-# Rota para cadastro de veterinário
-@app.route('/cadastrar-veterinario', methods=['POST'])
-def cadastrar_veterinario():
-    try:
-        # Obter dados do formulário
-        nome = request.form['nome']
-        email = request.form['email']
-        telefone = request.form['telefone']
-        senha = request.form['senha']
-        crmv = request.form['crmv']
-        uf_crmv = request.form['uf_crmv']
-        clinica_id = request.form['clinica_id']
-        descricao = request.form.get('descricao', '')
-        outras_especialidades = request.form.get('outras_especialidades', '')
-        
-        # Processar especialidades (checkboxes)
-        especialidades = request.form.getlist('especialidades[]')
-        especialidades_str = ','.join(especialidades)
-        if outras_especialidades:
-            if especialidades_str:
-                especialidades_str += ',' + outras_especialidades
-            else:
-                especialidades_str = outras_especialidades
-        
-        # Hash da senha
-        senha_hash = generate_password_hash(senha)
-        
-        # Processar foto do veterinário
-        foto = None
-        if 'foto' in request.files:
-            file = request.files['foto']
-            if file.filename != '' and allowed_file(file.filename):
-                filename = secure_filename(f"vet_{uuid.uuid4().hex}.{file.filename.rsplit('.', 1)[1].lower()}")
-                file_path = os.path.join('static/uploads/veterinarios', filename)
-                os.makedirs(os.path.dirname(file_path), exist_ok=True)
-                file.save(file_path)
-                foto = filename
-        
-        # Processar documento CRMV
-        documento_crmv = None
-        if 'documento_crmv' in request.files:
-            file = request.files['documento_crmv']
-            if file.filename != '':
-                filename = secure_filename(f"crmv_{uuid.uuid4().hex}.{file.filename.rsplit('.', 1)[1].lower()}")
-                file_path = os.path.join('static/uploads/documentos', filename)
-                os.makedirs(os.path.dirname(file_path), exist_ok=True)
-                file.save(file_path)
-                documento_crmv = filename
-        
-        # Conectar ao banco de dados
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Verificar se o email já está cadastrado
-        cursor.execute('SELECT 1 FROM usuarios WHERE email = %s', (email,))
-        if cursor.fetchone():
-            return jsonify({'success': False, 'message': 'Este email já está cadastrado'})
-        
-        # Verificar se o CRMV já está cadastrado
-        cursor.execute('SELECT 1 FROM veterinarios WHERE crmv = %s AND uf_crmv = %s', (crmv, uf_crmv))
-        if cursor.fetchone():
-            return jsonify({'success': False, 'message': 'Este CRMV já está cadastrado'})
-        
-        # Verificar se a clínica existe
-        cursor.execute('SELECT 1 FROM clinicas WHERE clinica_id = %s', (clinica_id,))
-        if not cursor.fetchone():
-            return jsonify({'success': False, 'message': 'Clínica não encontrada'})
-        
-        # Inserir usuário
-        cursor.execute(
-            'INSERT INTO usuarios (email, senha, nome, telefone, tipo_usuario, data_cadastro) VALUES (%s, %s, %s, %s, %s, NOW())',
-            (email, senha_hash, nome, telefone, 'veterinario')
-        )
-        usuario_id = cursor.lastrowid
-        
-        # Inserir veterinário
-        cursor.execute(
-            'INSERT INTO veterinarios (veterinario_id, crmv, uf_crmv, especialidades, descricao, clinica_id, foto, documento_crmv) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)',
-            (usuario_id, crmv, uf_crmv, especialidades_str, descricao, clinica_id, foto, documento_crmv)
-        )
-        
-        conn.commit()
-        
-        # Retornar sucesso
-        return jsonify({
-            'success': True, 
-            'message': 'Veterinário cadastrado com sucesso!',
-            'redirect': url_for('login_page')
-        })
-        
-    except Exception as e:
-        # Em caso de erro, fazer rollback
-        if 'conn' in locals() and conn:
-            conn.rollback()
-        return jsonify({'success': False, 'message': f'Erro ao cadastrar: {str(e)}'})
-    
-    finally:
-        # Fechar conexão
-        if 'cursor' in locals() and cursor:
-            cursor.close()
-        if 'conn' in locals() and conn:
-            conn.close()
-
-# Rota para página de cadastro de veterinário
-@app.route('/pages/cadastro-veterinario.html')
-def cadastro_veterinario_page():
-    # Buscar clínicas para o select
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute('SELECT clinica_id, razao_social FROM clinicas')
-    clinicas = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    
-    return render_template('pages/cadastro-veterinario.html', clinicas=clinicas)
-
-# Rota para buscar profissionais de uma clínica
-@app.route('/get-profissionais-da-clinica/<int:clinica_id>')
-def get_profissionais_da_clinica(clinica_id):
-    if 'user_id' not in session:
-        return jsonify({'success': False, 'message': 'Usuário não autenticado'}), 401
-    
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        
-        # Buscar veterinários da clínica
-        cursor.execute('''
-            SELECT v.veterinario_id as profissional_id, u.nome as nome_profissional 
-            FROM veterinarios v 
-            JOIN usuarios u ON v.veterinario_id = u.usuario_id 
-            WHERE v.clinica_id = %s
-        ''', (clinica_id,))
-        
-        profissionais = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        
-        return jsonify(profissionais)
-    
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-# Rota para página de agendamento de consulta
-@app.route('/pages/agendar-consulta.html')
-def agendar_consulta_page():
-    if 'user_id' not in session or session['user_type'] != 'tutor':
-        return redirect(url_for('login'))
-        
-    # Buscar os pets do usuário logado
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute('SELECT * FROM pets WHERE usuario_id = %s', (session['id'],))
-    pets = cursor.fetchall()
-    
-    # Buscar todas as clínicas
-    cursor.execute('SELECT * FROM clinicas')
-    clinicas = cursor.fetchall()
-    
-    # Definir horários disponíveis (8h às 18h, de hora em hora)
-    horas_disponiveis = ['08:00', '09:00', '10:00', '11:00', '12:00', 
-                         '13:00', '14:00', '15:00', '16:00', '17:00', '18:00']
-    
-    # Data de hoje para validação no input date
-    hoje = datetime.now().strftime('%Y-%m-%d')
-    
-    return render_template('pages/agendar-consulta.html', 
-                          pets=pets, 
-                          clinicas=clinicas, 
-                          horas_disponiveis=horas_disponiveis,
-                          hoje=hoje)
-
-@app.route('/get-profissionais-da-clinica/<int:clinica_id>')
-@login_required
-def get_profissionais_da_clinica(clinica_id):
-    try:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        
-        # Buscar profissionais (veterinários) associados à clínica
-        cursor.execute('''
-            SELECT p.profissional_id, u.nome as nome_profissional
-            FROM profissionais p
-            JOIN usuarios u ON p.usuario_id = u.id
-            WHERE p.clinica_id = %s
-        ''', (clinica_id,))
-        
-        profissionais = cursor.fetchall()
-        return jsonify(profissionais)
-    
-    except Exception as e:
-        app.logger.error(f"Erro ao buscar profissionais: {str(e)}")
-        return jsonify([]), 500
-
-@app.route('/salvar-agendamento', methods=['POST'])
-@login_required
-def salvar_agendamento():
-    try:
-        # Obter dados do formulário
-        pet_id = request.form.get('pet_id')
-        clinica_id = request.form.get('clinica_id')
-        profissional_id = request.form.get('profissional_id') or None  # Opcional
-        data_consulta = request.form.get('data_consulta')
-        hora_consulta = request.form.get('hora_consulta')
-        observacoes = request.form.get('observacoes')
-        
-        # Validações básicas
-        if not pet_id or not clinica_id or not data_consulta or not hora_consulta:
-            return jsonify({'success': False, 'message': 'Todos os campos obrigatórios devem ser preenchidos'}), 400
-        
-        # Verificar se a data é futura
-        data_hora_consulta = datetime.strptime(f"{data_consulta} {hora_consulta}", "%Y-%m-%d %H:%M")
-        if data_hora_consulta <= datetime.now():
-            return jsonify({'success': False, 'message': 'A data e horário da consulta devem ser futuros'}), 400
-        
-        # Verificar se o pet pertence ao usuário logado
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('SELECT * FROM pets WHERE pet_id = %s AND usuario_id = %s', (pet_id, session['id']))
-        pet = cursor.fetchone()
-        
-        if not pet:
-            return jsonify({'success': False, 'message': 'Pet não encontrado ou não pertence ao usuário'}), 403
-        
-        # Verificar se o horário está disponível na clínica
-        cursor.execute('''
-            SELECT * FROM consultas 
-            WHERE clinica_id = %s AND data_consulta = %s AND hora_consulta = %s
-            AND status != 'cancelada'
-        ''', (clinica_id, data_consulta, hora_consulta))
-        
-        if cursor.fetchone():
-            return jsonify({'success': False, 'message': 'Este horário já está ocupado na clínica selecionada'}), 409
-        
-        # Se um profissional foi selecionado, verificar disponibilidade específica
-        if profissional_id:
-            cursor.execute('''
-                SELECT * FROM consultas 
-                WHERE profissional_id = %s AND data_consulta = %s AND hora_consulta = %s
-                AND status != 'cancelada'
-            ''', (profissional_id, data_consulta, hora_consulta))
-            
-            if cursor.fetchone():
-                return jsonify({'success': False, 'message': 'Este profissional já possui um agendamento neste horário'}), 409
-        
-        # Inserir o agendamento no banco de dados
-        cursor.execute('''
-            INSERT INTO consultas (pet_id, clinica_id, profissional_id, data_consulta, hora_consulta, 
-                                  observacoes, status, data_criacao)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
-        ''', (pet_id, clinica_id, profissional_id, data_consulta, hora_consulta, observacoes, 'agendada'))
-        
-        mysql.connection.commit()
-        
-        return jsonify({
-            'success': True, 
-            'message': 'Consulta agendada com sucesso!'
-        })
-        
-    except Exception as e:
-        app.logger.error(f"Erro ao salvar agendamento: {str(e)}")
-        return jsonify({
-            'success': False, 
-            'message': f'Erro ao processar agendamento: {str(e)}'
-        }), 500
-    if 'user_id' not in session or session['user_type'] != 'tutor':
-        flash('Acesso não autorizado')
-        return redirect(url_for('login_page'))
-    
-    user_id = session['user_id']
-    
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    # Buscar pets do tutor
-    cursor.execute('SELECT * FROM pets WHERE tutor_id = %s', (user_id,))
-    pets = cursor.fetchall()
-    
-    # Buscar clínicas disponíveis
-    cursor.execute('SELECT clinica_id, razao_social FROM clinicas')
-    clinicas = cursor.fetchall()
-    
-    # Gerar horários disponíveis (de 8h às 18h, a cada 30 min)
-    horas_disponiveis = []
-    for hora in range(8, 19):
-        for minuto in [0, 30]:
-            if hora == 18 and minuto == 30:
-                continue  # Não incluir 18:30
-            horas_disponiveis.append(f"{hora:02d}:{minuto:02d}")
-    
-    # Data de hoje para validação
-    hoje = datetime.datetime.now().strftime('%Y-%m-%d')
-    
-    cursor.close()
-    conn.close()
-    
-    return render_template('pages/agendar-consulta.html', 
-                          pets=pets, 
-                          clinicas=clinicas, 
-                          horas_disponiveis=horas_disponiveis,
-                          hoje=hoje)
-
-# Rota para salvar agendamento
-@app.route('/salvar-agendamento', methods=['POST'])
-def salvar_agendamento():
-    if 'user_id' not in session or session['user_type'] != 'tutor':
-        return jsonify({'success': False, 'message': 'Acesso não autorizado'}), 403
-    
-    try:
-        # Obter dados do formulário
-        pet_id = request.form['pet_id']
-        clinica_id = request.form['clinica_id']
-        profissional_id = request.form.get('profissional_id', None)  # Opcional
-        data_consulta = request.form['data_consulta']
-        hora_consulta = request.form['hora_consulta']
-        observacoes = request.form.get('observacoes', '')
-        
-        # Combinar data e hora
-        data_hora = f"{data_consulta} {hora_consulta}:00"
-        
-        # Validar se a data/hora é futura
-        data_hora_obj = datetime.datetime.strptime(data_hora, '%Y-%m-%d %H:%M:%S')
-        if data_hora_obj <= datetime.datetime.now():
-            return jsonify({'success': False, 'message': 'A data e horário da consulta devem ser futuros'})
-        
-        # Verificar disponibilidade do horário
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        
-        # Se profissional foi especificado, verificar disponibilidade dele
-        if profissional_id:
-            cursor.execute('''
-                SELECT 1 FROM consultas 
-                WHERE data_hora = %s AND (clinica_id = %s OR veterinario_id = %s)
-            ''', (data_hora, clinica_id, profissional_id))
-        else:
-            cursor.execute('''
-                SELECT 1 FROM consultas 
-                WHERE data_hora = %s AND clinica_id = %s
-            ''', (data_hora, clinica_id))
-        
-        if cursor.fetchone():
-            return jsonify({'success': False, 'message': 'Este horário já está ocupado. Por favor, escolha outro.'})
-        
-        # Verificar se o pet pertence ao tutor
-        tutor_id = session['user_id']
-        cursor.execute('SELECT 1 FROM pets WHERE pet_id = %s AND tutor_id = %s', (pet_id, tutor_id))
-        if not cursor.fetchone():
-            return jsonify({'success': False, 'message': 'Pet não encontrado ou não pertence ao tutor'})
-        
-        # Inserir consulta
-        cursor.execute('''
-            INSERT INTO consultas (pet_id, clinica_id, veterinario_id, data_hora, observacoes, status, data_agendamento)
-            VALUES (%s, %s, %s, %s, %s, %s, NOW())
-        ''', (pet_id, clinica_id, profissional_id, data_hora, observacoes, 'agendada'))
-        
-        conn.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Consulta agendada com sucesso!'
-        })
-        
-    except Exception as e:
-        if 'conn' in locals() and conn:
-            conn.rollback()
-        return jsonify({'success': False, 'message': f'Erro ao agendar consulta: {str(e)}'})
-    
-    finally:
-        if 'cursor' in locals() and cursor:
-            cursor.close()
-        if 'conn' in locals() and conn:
-            conn.close()
-
-# Rota para atualizar pet
-@app.route('/atualizar-pet', methods=['POST'])
-def atualizar_pet():
-    if 'user_id' not in session or session['user_type'] != 'tutor':
-        return jsonify({'success': False, 'message': 'Acesso não autorizado'}), 403
-    
-    pet_id = request.form['pet_id']
-    tutor_id = session['user_id']
-    nome_pet = request.form['nome_pet']
-    especie = request.form['especie']
-    raca = request.form.get('raca', '')
-    data_nascimento = request.form.get('data_nascimento')
-    sexo = request.form.get('sexo', '')  # Corrigido para usar get()
-    peso = request.form.get('peso')
-    
-    # Processar a foto
-    foto = None
-    if 'foto' in request.files:
-        file = request.files['foto']
-        if file.filename != '' and allowed_file(file.filename):
-            filename = secure_filename(f"{uuid.uuid4().hex}.{file.filename.rsplit('.', 1)[1].lower()}")
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            foto = filename
-
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)  # Usar dictionary=True
-    
-    try:
-        # Verificar se o pet pertence ao tutor
-        cursor.execute('SELECT tutor_id, foto as old_foto FROM pets WHERE pet_id = %s', (pet_id,))
-        pet = cursor.fetchone()
-        
-        if not pet or pet['tutor_id'] != tutor_id:
-            return jsonify({'success': False, 'message': 'Pet não encontrado ou não pertence ao tutor'}), 404
-        
-        # Manter foto antiga se nova não foi enviada
-        if foto is None:
-            foto = pet['old_foto']
-        
-        # Atualizar COM FOTO
-        cursor.execute(
-            'UPDATE pets SET nome_pet = %s, especie = %s, raca = %s, data_nascimento = %s, sexo = %s, peso = %s, foto = %s '
-            'WHERE pet_id = %s',
-            (nome_pet, especie, raca, data_nascimento, sexo, peso, foto, pet_id)  # Adicionado foto
-        )
-        conn.commit()
-        return jsonify({'success': True})
-    except mysql.connector.Error as err:
-        conn.rollback()
-        return jsonify({'success': False, 'message': str(err)}), 500
-    finally:
-        cursor.close()
-        conn.close()
-
-@app.route('/agendar-consulta')
-def agendar_consulta_page():
-    if 'user_id' not in session or session['user_type'] != 'tutor':
-        flash('Você precisa estar logado como tutor para agendar uma consulta')
-        return redirect(url_for('login_page'))
-    
-    tutor_id = session['user_id']
-    
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    # Buscar pets do tutor
-    cursor.execute('SELECT * FROM pets WHERE tutor_id = %s', (tutor_id,))
-    pets = cursor.fetchall()
-    
-    # Buscar clínicas disponíveis
-    cursor.execute('SELECT * FROM clinicas')
-    clinicas = cursor.fetchall()
-    
-    cursor.close()
-    conn.close()
-    
-    # Data de hoje no formato YYYY-MM-DD
-    hoje = datetime.date.today().isoformat()
-    
-    # Gerar horários disponíveis (9:00 às 18:00, a cada 30 minutos)
-    horas_disponiveis = []
-    for hora in range(9, 19):
-        for minuto in [0, 30]:
-            horas_disponiveis.append(f"{hora:02d}:{minuto:02d}")
-    
-    return render_template('pages/agendar-consulta.html', 
-                           pets=pets, 
-                           clinicas=clinicas,
-                           hoje=hoje,
-                           horas_disponiveis=horas_disponiveis)
-
-# Rota para buscar profissionais de uma clínica
-@app.route('/get-profissionais-da-clinica/<int:clinica_id>')
-def get_profissionais_da_clinica(clinica_id):
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    cursor.execute(
-        'SELECT p.profissional_id, p.nome_profissional '
-        'FROM profissionais p '
-        'JOIN profissionais_clinicas pc ON p.profissional_id = pc.profissional_id '
-        'WHERE pc.clinica_id = %s',
-        (clinica_id,)
-    )
-    profissionais = cursor.fetchall()
-    
-    cursor.close()
-    conn.close()
-    
-    return jsonify(profissionais)
-
-# Rota para salvar o agendamento
-@app.route('/salvar-agendamento', methods=['POST'])
-def salvar_agendamento():
-    if 'user_id' not in session or session['user_type'] != 'tutor':
-        return jsonify({'success': False, 'message': 'Acesso não autorizado'}), 403
-    
-    tutor_id = session['user_id']
-    pet_id = request.form['pet_id']
-    clinica_id = request.form['clinica_id']
-    profissional_id = request.form.get('profissional_id', None)
-    data_consulta = request.form['data_consulta']
-    hora_consulta = request.form['hora_consulta']
-    observacoes = request.form.get('observacoes', '')
-    
-    # Combinar data e hora
-    data_hora = f"{data_consulta} {hora_consulta}:00"
-    
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    try:
-        # Verificar se o pet pertence ao tutor
-        cursor.execute('SELECT tutor_id FROM pets WHERE pet_id = %s', (pet_id,))
-        pet = cursor.fetchone()
-        if not pet or pet[0] != tutor_id:
-            return jsonify({'success': False, 'message': 'Pet não encontrado ou não pertence ao tutor'}), 404
-        
-        # Inserir agendamento
-        cursor.execute(
-            'INSERT INTO agendamentos (data_hora, pet_id, profissional_id, clinica_id, status, observacoes, data_cadastro) '
-            'VALUES (%s, %s, %s, %s, "agendado", %s, NOW())',
-            (data_hora, pet_id, profissional_id, clinica_id, observacoes)
-        )
-        conn.commit()
-        return jsonify({'success': True, 'message': 'Consulta agendada com sucesso!'})
-    except mysql.connector.Error as err:
-        conn.rollback()
-        return jsonify({'success': False, 'message': str(err)}), 500
-    finally:
-        cursor.close()
-        conn.close()
-
-@app.route('/login', methods=['POST'])
-def login():
-    email = request.form['email']
-    password = request.form['password']
-    
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    # Verificar em todas as tabelas de usuários
-    # Tutor
-    cursor.execute('SELECT * FROM tutores WHERE email = %s', (email,))
-    tutor = cursor.fetchone()
-    if tutor and check_password_hash(tutor['senha'], password):
-        session['user_id'] = tutor['tutor_id']
-        session['user_type'] = 'tutor'
-        session['user_name'] = tutor['nome_tutores']
-        cursor.close()
-        conn.close()
-        return redirect(url_for('dashboard'))
-    
-
-    
-    # Clínica
-    cursor.execute('SELECT * FROM clinicas WHERE email = %s', (email,))
-    clinica = cursor.fetchone()
-    if clinica and check_password_hash(clinica['senha'], password):
-        session['user_id'] = clinica['clinica_id']
-        session['user_type'] = 'clinica'
-        session['user_name'] = clinica['razao_social']
-        cursor.close()
-        conn.close()
-        return redirect(url_for('dashboard'))
-    
-    conn.close()
-    flash('Email ou senha incorretos')
-    return redirect(url_for('login_page'))
-
-@app.route('/dashboard')
-def dashboard():
-    # Verificar se o usuário está logado
-    if 'user_id' not in session:
-        flash('Você precisa estar logado para acessar esta página')
-        return redirect(url_for('login_page'))
-    
-    user_id = session['user_id']
-    user_type = session['user_type']
-    user_name = session['user_name']
-    
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    # Dados comuns para todos os tipos de usuário
-    data = {
-        'user_name': user_name,
-        'user_type': user_type,
-        'user_since': datetime.datetime.now().strftime('%d/%m/%Y'),  # Placeholder, será substituído pelo dado real
-        'activities': [],  # Lista vazia por padrão
-    }
-    
-    # Definir o texto de exibição do tipo de usuário
-    if user_type == 'tutor':
-        data['user_type_display'] = 'Tutor de Pet'
-        
-        # Buscar dados específicos para tutores
-        cursor.execute('SELECT * FROM tutores WHERE tutor_id = %s', (user_id,))
-        tutor = cursor.fetchone()
-        if tutor:
-            data['user_since'] = datetime.datetime.strptime(str(tutor['data_cadastro']), '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y')
-        
-        # Contar pets do tutor
-        cursor.execute('SELECT COUNT(*) as count FROM pets WHERE tutor_id = %s', (user_id,))
-        pets = cursor.fetchone()
-        data['pets_count'] = pets['count'] if pets else 0
-        
-   
-        proximas_consultas = cursor.fetchall()
-        data['proximas_consultas'] = proximas_consultas
-        # Contar favoritos do tutor
-        cursor.execute('SELECT COUNT(*) as count FROM favoritos WHERE tutor_id = %s', (user_id,))
-        favoritos = cursor.fetchone()
-        data['favoritos_count'] = favoritos['count'] if favoritos else 0
-        
-        # Buscar atividades recentes (últimos agendamentos)
-        cursor.execute(
-            'SELECT a.data_hora, m.nome_medico as medico_nome, p.nome_pet as pet_nome '
-            'FROM agendamentos a '
-            'JOIN pets p ON a.pet_id = p.pet_id '
-            'JOIN medicos m ON a.medico_id = m.medico_id '
-            'WHERE p.tutor_id = %s '
-            'ORDER BY a.data_cadastro DESC LIMIT 5', 
-            (user_id,)
-        )
-        recent_activities = cursor.fetchall()
-        
-        for activity in recent_activities:
-            data['activities'].append({
-                'icon': 'fas fa-calendar-check',
-                'text': f'Consulta agendada para {activity["pet_nome"]} com Dr(a). {activity["medico_nome"]}',
-                'date': datetime.datetime.strptime(activity['data_hora'], '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y %H:%M')
-            })
-    
-    elif user_type == 'medico':
-        data['user_type_display'] = 'Médico Veterinário'
-        
-        # Buscar dados específicos para médicos
-        cursor.execute('SELECT * FROM medicos WHERE medico_id = %s', (user_id,))
-        medico = cursor.fetchone()
-        if medico:
-            data['user_since'] = datetime.datetime.strptime(str(medico['data_cadastro']), '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y')
-        
-        # Contar agendamentos do médico
-        cursor.execute(
-            'SELECT COUNT(*) as count FROM agendamentos WHERE medico_id = %s AND status = "agendado"', 
-            (user_id,)
-        )
-        agendamentos = cursor.fetchone()
-        data['agendamentos_count'] = agendamentos['count'] if agendamentos else 0
-        
-        # Contar pacientes únicos do médico
-        cursor.execute(
-            'SELECT COUNT(DISTINCT pet_id) as count FROM agendamentos WHERE medico_id = %s', 
-            (user_id,)
-        )
-        pacientes = cursor.fetchone()
-        data['pacientes_count'] = pacientes['count'] if pacientes else 0
-        
-        # Contar clínicas associadas ao médico
-        cursor.execute(
-            'SELECT COUNT(*) as count FROM medicos_clinicas WHERE medico_id = %s', 
-            (user_id,)
-        )
-        clinicas = cursor.fetchone()
-        data['clinicas_count'] = clinicas['count'] if clinicas else 0
-        
-        # Buscar atividades recentes (últimos agendamentos)
-        cursor.execute(
-            'SELECT a.data_hora, p.nome_pet as pet_nome, t.nome_tutores as tutor_nome '
-            'FROM agendamentos a '
-            'JOIN pets p ON a.pet_id = p.pet_id '
-            'JOIN tutores t ON p.tutor_id = t.tutor_id '
-            'WHERE a.medico_id = %s '
-            'ORDER BY a.data_cadastro DESC LIMIT 5', 
-            (user_id,)
-        )
-        recent_activities = cursor.fetchall()
-        
-        for activity in recent_activities:
-            data['activities'].append({
-                'icon': 'fas fa-calendar-check',
-                'text': f'Consulta agendada para {activity["pet_nome"]} do tutor {activity["tutor_nome"]}',
-                'date': datetime.datetime.strptime(activity['data_hora'], '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y %H:%M')
-            })
-    
-    elif user_type == 'clinica':
-        data['user_type_display'] = 'Clínica Veterinária'
-        
-        # Buscar dados específicos para clínicas
-        cursor.execute('SELECT * FROM clinicas WHERE clinica_id = %s', (user_id,))
-        clinica = cursor.fetchone()
-        if clinica:
-            data['user_since'] = datetime.datetime.strptime(str(clinica['data_cadastro']), '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y')
-        
-        # Contar agendamentos da clínica
-        cursor.execute(
-            'SELECT COUNT(*) as count FROM agendamentos WHERE clinica_id = %s AND status = "agendado"', 
-            (user_id,)
-        )
-        agendamentos = cursor.fetchone()
-        data['agendamentos_count'] = agendamentos['count'] if agendamentos else 0
-        
-        # Contar médicos associados à clínica
-        cursor.execute(
-            'SELECT COUNT(*) as count FROM medicos_clinicas WHERE clinica_id = %s', 
-            (user_id,)
-        )
-        medicos = cursor.fetchone()
-        data['medicos_count'] = medicos['count'] if medicos else 0
-        
-        # Buscar atividades recentes (últimos agendamentos)
-        cursor.execute(
-            'SELECT a.data_hora, p.nome_pet as pet_nome, m.nome_medico as medico_nome '
-            'FROM agendamentos a '
-            'JOIN pets p ON a.pet_id = p.pet_id '
-            'JOIN medicos m ON a.medico_id = m.medico_id '
-            'WHERE a.clinica_id = %s '
-            'ORDER BY a.data_cadastro DESC LIMIT 5', 
-            (user_id,)
-        )
-        recent_activities = cursor.fetchall()
-        
-        for activity in recent_activities:
-            data['activities'].append({
-                'icon': 'fas fa-calendar-check',
-                'text': f'Consulta agendada com Dr(a). {activity["medico_nome"]} para {activity["pet_nome"]}',
-                'date': datetime.datetime.strptime(activity['data_hora'], '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y %H:%M')
-            })
-    
-    cursor.close()
-    conn.close()
-    return render_template('pages/dashboard.html', **data)
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('index'))
-
-@app.route('/editar-perfil.html')
-def editar_perfil_page():
-    # Verificar se o usuário está logado
-    if 'user_id' not in session:
-        flash('Você precisa estar logado para acessar esta página')
-        return redirect(url_for('login_page'))
-    
-    user_id = session['user_id']
-    user_type = session['user_type']
-    user_name = session['user_name']
-    
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    # Dados comuns para todos os tipos de usuário
-    data = {
-        'user_name': user_name,
-        'user_type': user_type,
-        'user_since': datetime.datetime.now().strftime('%d/%m/%Y'),  # Placeholder, será substituído pelo dado real
-    }
-    
-    # Definir o texto de exibição do tipo de usuário
-    if user_type == 'tutor':
-        data['user_type_display'] = 'Tutor de Pet'
-        
-        # Buscar dados específicos para tutores
-        cursor.execute('SELECT t.*, e.endereco, e.cep FROM tutores t LEFT JOIN endereco e ON t.endereco_id = e.id_endereco WHERE t.tutor_id = %s', (user_id,))
-        tutor = cursor.fetchone()
-        if tutor:
-            if tutor['data_cadastro']:
-                data['user_since'] = datetime.datetime.strptime(str(tutor['data_cadastro']), '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y')
-            data['tutor'] = dict(tutor)
-    
-    elif user_type == 'medico':
-        data['user_type_display'] = 'Médico Veterinário'
-        
-        # Buscar dados específicos para médicos
-        cursor.execute('SELECT * FROM medicos WHERE medico_id = %s', (user_id,))
-        medico = cursor.fetchone()
-        if medico:
-            data['user_since'] = datetime.datetime.strptime(str(medico['data_cadastro']), '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y')
-            data['medico'] = dict(medico)
-    
-    elif user_type == 'clinica':
-        data['user_type_display'] = 'Clínica Veterinária'
-        
-        # Buscar dados específicos para clínicas
-        cursor.execute('SELECT * FROM clinicas WHERE clinica_id = %s', (user_id,))
-        clinica = cursor.fetchone()
-        if clinica:
-            data['user_since'] = datetime.datetime.strptime(str(clinica['data_cadastro']), '%Y-%m-%d %H:%M:%S').strftime('%d/%m/%Y')
-            data['clinica'] = dict(clinica)
-    
-    cursor.close()
-    conn.close()
-    return render_template('pages/editar-perfil.html', **data)
 
 @app.route('/pages/cadastro.html')
 def cadastro_page():
     return render_template('pages/cadastro.html')
 
-@app.route('/pages/cadastro-new.html')
-def cadastro_new_page():
-    return render_template('pages/cadastro-new.html')
-
-@app.route('/pages/cadastro-tutor.html')
-def cadastro_tutor_page():
-    return render_template('pages/cadastro-tutor-new.html')
-
 @app.route('/pages/cadastro-tutor-new.html')
 def cadastro_tutor_new_page():
     return render_template('pages/cadastro-tutor-new.html')
-
-@app.route('/submit-tutor', methods=['POST'])
-def submit_tutor():
-        # Coletar todos os campos do formulário
-    nome = request.form['full-name']
-    email = request.form['email']
-    senha = request.form['password']
-    endereco_rua = request.form['address']
-    cep = request.form['cep']
-    bairro = request.form['bairro']  # Novo campo
-    telefone = request.form['phone']  # Novo campo
-    cidade = request.form['city']
-    uf = request.form['state']
-    data_nascimento = request.form['birth-date']
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    # Verificar se o email já existe
-    cursor.execute('SELECT * FROM tutores WHERE email = %s', (email,))
-    existing_user = cursor.fetchone()
-    if existing_user:
-        cursor.close()
-        conn.close()
-        flash('Email já cadastrado')
-        return redirect(url_for('cadastro_tutor_page'))
-    
-    try:
-        # 1. Obter ou criar cidade
-        cursor.execute('SELECT id_cidade FROM cidade WHERE cidade = %s', (cidade,))
-        cidade_row = cursor.fetchone()
-        
-        if not cidade_row:
-            # Se a cidade não existe, criar
-            cursor.execute('INSERT INTO cidade (cidade) VALUES (%s)', (cidade,))
-            id_cidade = cursor.lastrowid
-        else:
-            id_cidade = cidade_row['id_cidade']
-        
-        # 2. Inserir endereço
-        cursor.execute(
-            'INSERT INTO endereco (endereco, cep, telefone, bairro, id_cidade) '
-            'VALUES (%s, %s, %s, %s, %s)',
-            (endereco_rua, cep, telefone, bairro, id_cidade)
-        )
-        endereco_id = cursor.lastrowid
-        
-        # 3. Inserir tutor
-        data_cadastro = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        senha_hash = generate_password_hash(senha)
-        
-        cursor.execute(
-            'INSERT INTO tutores (nome_tutores, email, senha, data_nascimento, data_cadastro, endereco_id) '
-            'VALUES (%s, %s, %s, %s, %s, %s)',
-            (nome, email, senha_hash, data_nascimento, data_cadastro, endereco_id)
-        )
-        
-        conn.commit()
-        flash('Cadastro realizado com sucesso!')
-    
-        
-        conn.commit()
-        flash('Cadastro realizado com sucesso!')
-    except mysql.connector.Error as err:
-        conn.rollback()
-        flash(f'Erro ao cadastrar: {err}')
-    except Exception as e:
-        conn.rollback()
-        flash(f'Erro inesperado: {str(e)}')
-    finally:
-        cursor.close()
-        conn.close()
-    
-    return redirect(url_for('login_page'))
-
-@app.route('/pages/cadastro-MV.html')
-def cadastro_mv_page():
-    return render_template('pages/cadastro-MV.html')
-
-@app.route('/pages/cadastro-MV-new.html')
-def cadastro_mv_new_page():
-    return render_template('pages/cadastro-MV-new.html')
-
-@app.route('/submit-MV', methods=['POST'])
-def submit_mv():
-    nome = request.form['full-name']
-    email = request.form['email']
-    crmv = request.form['CRMV']
-    uf = request.form['state']
-    senha = generate_password_hash(request.form['password'])
-    
-    # Obter outros campos do formulário
-    
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    # Verificar se o email já existe
-    cursor.execute('SELECT * FROM medicos WHERE email = %s', (email,))
-    existing_user = cursor.fetchone()
-    if existing_user:
-        cursor.close()
-        conn.close()
-        flash('Email já cadastrado')
-        return redirect(url_for('cadastro_mv_page'))
-    
-    # Inserir no banco de dados (ajustar conforme os campos do formulário)
-    data_cadastro = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    cursor.execute('INSERT INTO medicos (nome_medico, email, crmv, uf, senha, data_cadastro) VALUES (%s, %s, %s, %s, %s, %s)',
-                (nome, email, crmv, uf, senha, data_cadastro))
-    conn.commit()
-    cursor.close()
-    conn.close()
-    
-    flash('Cadastro realizado com sucesso!')
-    return redirect(url_for('login_page'))
 
 @app.route('/pages/cadastro-clinica.html')
 def cadastro_clinica_page():
     return render_template('pages/cadastro-clinica.html')
 
-@app.route('/submit-estabelecimento', methods=['POST'])
-def submit_clinica():
-    razao_social = request.form['full-name']
-    email = request.form['email']
-    senha = request.form['password']
-    cep = request.form['cep']
-    uf = request.form['state']
-    cidade = request.form['city']
-    bairro = request.form['neighborhood']  # Campo adicionado
-    rua = request.form['street']           # Campo adicionado
-    numero = request.form['number']        # Campo adicionado
-    telefone = request.form['phone']       # Campo existente
-    
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    # Verificar se o email já existe
-    cursor.execute('SELECT * FROM clinicas WHERE email = %s', (email,))
-    existing_user = cursor.fetchone()
-    if existing_user:
-        cursor.close()
-        conn.close()
-        flash('Email já cadastrado')
-        return redirect(url_for('cadastro_clinica_page'))
-    
-    data_cadastro = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    senha_hash = generate_password_hash(senha)
-    
-    # Query atualizada com novos campos
-    cursor.execute(
-        'INSERT INTO clinicas (razao_social, email, senha, cep, uf, cidade, bairro, rua, numero, telefone, data_cadastro) '
-        'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
-        (razao_social, email, senha_hash, cep, uf, cidade, bairro, rua, numero, telefone, data_cadastro)
-    )
-    conn.commit()
-    cursor.close()
-    conn.close()
-    
-    flash('Cadastro realizado com sucesso!')
-    return redirect(url_for('login_page'))
+@app.route('/pages/cadastro-MV-new.html')
+def cadastro_mv_new_page():
+    return render_template('pages/cadastro-MV-new.html')
 
-@app.route('/search', methods=['GET'])
-def search():
-    search_text = request.args.get('search-text')
-    location = request.args.get('Location')
-    
-    # Implementar lógica de busca no banco de dados
-    # Por enquanto, apenas retorna para a página inicial
-    return redirect(url_for('index'))
+# --- DASHBOARD ---
 
-@app.route('/atualizar-tutor', methods=['POST'])
-def atualizar_tutor():
-    # Verificar se o usuário está logado e é um tutor
-    if 'user_id' not in session or session['user_type'] != 'tutor':
-        flash('Acesso não autorizado')
-        return redirect(url_for('login_page'))
-    
+@app.route('/dashboard')
+@login_required
+def dashboard():
     user_id = session['user_id']
-    
-    # Obter dados do formulário
-    nome = request.form['nome']
-    email = request.form['email']
-    endereco_rua = request.form['endereco']
-    cep = request.form['cep']
-    data_nascimento = request.form['data_nascimento']
-    senha_atual = request.form.get('senha_atual')
-    nova_senha = request.form.get('nova_senha')
-    confirmar_senha = request.form.get('confirmar_senha')
+    user_type = session['user_type']
     
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
+    
+    data = {
+        'user_name': session['user_name'],
+        'user_type': user_type,
+        'user_since': datetime.datetime.now().strftime('%d/%m/%Y'),
+        'activities': [],
+        'proximas_consultas': []
+    }
     
     try:
-        # Verificar se o email já existe (exceto para o próprio usuário)
-        cursor.execute('SELECT * FROM tutores WHERE email = %s AND tutor_id != %s', (email, user_id))
-        existing_user = cursor.fetchone()
-        if existing_user:
-            flash('Email já cadastrado por outro usuário')
-            return redirect(url_for('editar_perfil_page'))
-        
-        # Obter dados atuais do usuário
-        cursor.execute('SELECT * FROM tutores WHERE tutor_id = %s', (user_id,))
-        tutor = cursor.fetchone()
-        
-        # Verificar senha atual se fornecida
-        if senha_atual:
-            if not check_password_hash(tutor['senha'], senha_atual):
-                flash('Senha atual incorreta')
-                return redirect(url_for('editar_perfil_page'))
+        if user_type == 'tutor':
+            data['user_type_display'] = 'Tutor de Pet'
+            cursor.execute('SELECT data_cadastro FROM tutores WHERE tutor_id = %s', (user_id,))
+            res = cursor.fetchone()
+            if res and res['data_cadastro']: 
+                data['user_since'] = res['data_cadastro'].strftime('%d/%m/%Y')
+
+            # Contar pets
+            cursor.execute('SELECT COUNT(*) as count FROM pets WHERE tutor_id = %s', (user_id,))
+            data['pets_count'] = cursor.fetchone()['count']
             
-            # Verificar se o tutor já tem um endereço associado
-            endereco_id = tutor.get('endereco_id')
+            # Buscar próximas consultas (tabela agendamentos)
+            cursor.execute('''
+                SELECT a.data_hora, c.razao_social as clinica_nome, p.nome_pet, m.nome_medico
+                FROM agendamentos a
+                JOIN clinicas c ON a.clinica_id = c.clinica_id
+                JOIN pets p ON a.pet_id = p.pet_id
+                LEFT JOIN medicos m ON a.medico_id = m.medico_id
+                WHERE p.tutor_id = %s AND a.status = 'agendado'
+                ORDER BY a.data_hora ASC LIMIT 5
+            ''', (user_id,))
+            data['proximas_consultas'] = cursor.fetchall()
+
+        elif user_type == 'medico':
+            data['user_type_display'] = 'Médico Veterinário'
+            cursor.execute('SELECT data_cadastro FROM medicos WHERE medico_id = %s', (user_id,))
+            res = cursor.fetchone()
+            if res and res['data_cadastro']:
+                 data['user_since'] = res['data_cadastro'].strftime('%d/%m/%Y')
+
+            # Contar agendamentos
+            cursor.execute('SELECT COUNT(*) as count FROM agendamentos WHERE medico_id = %s AND status = "agendado"', (user_id,))
+            data['agendamentos_count'] = cursor.fetchone()['count']
             
-            if endereco_id:
-                # Atualizar o endereço existente
-                cursor.execute(
-                    'UPDATE endereco SET endereco = %s, cep = %s WHERE id_endereco = %s',
-                    (endereco_rua, cep, endereco_id)
-                )
-            else:
-                # Criar um novo endereço
-                cursor.execute(
-                    'INSERT INTO endereco (endereco, cep) VALUES (%s, %s)',
-                    (endereco_rua, cep)
-                )
-                endereco_id = cursor.lastrowid
-                
-                # Atualizar o tutor com o novo endereco_id
-                cursor.execute(
-                    'UPDATE tutores SET endereco_id = %s WHERE tutor_id = %s',
-                    (endereco_id, user_id)
-                )
-            
-            # Atualizar senha se nova senha fornecida
-            if nova_senha:
-                if nova_senha != confirmar_senha:
-                    flash('Nova senha e confirmação não coincidem')
-                    return redirect(url_for('editar_perfil_page'))
-                
-                # Atualizar com nova senha
-                cursor.execute(
-                    'UPDATE tutores SET nome_tutores = %s, email = %s, data_nascimento = %s, senha = %s WHERE tutor_id = %s',
-                    (nome, email, data_nascimento, generate_password_hash(nova_senha), user_id)
-                )
-            else:
-                # Atualizar sem mudar a senha
-                cursor.execute(
-                    'UPDATE tutores SET nome_tutores = %s, email = %s, data_nascimento = %s WHERE tutor_id = %s',
-                    (nome, email, data_nascimento, user_id)
-                )
-        else:
-            # Não permitir atualização sem senha atual
-            flash('Senha atual é necessária para fazer alterações')
-            return redirect(url_for('editar_perfil_page'))
-        
-        conn.commit()
-        # Atualizar o nome na sessão
-        session['user_name'] = nome
-        flash('Perfil atualizado com sucesso!')
-    except mysql.connector.Error as err:
-        conn.rollback()
-        flash(f'Erro ao atualizar perfil: {err}')
+            # Consultas do médico
+            cursor.execute('''
+                SELECT a.data_hora, p.nome_pet, t.nome_tutores
+                FROM agendamentos a
+                JOIN pets p ON a.pet_id = p.pet_id
+                JOIN tutores t ON p.tutor_id = t.tutor_id
+                WHERE a.medico_id = %s AND a.status = 'agendado'
+                ORDER BY a.data_hora ASC LIMIT 5
+            ''', (user_id,))
+            consultas = cursor.fetchall()
+            for c in consultas:
+                data['activities'].append({
+                    'text': f"Atendimento: {c['nome_pet']} (Tutor: {c['nome_tutores']})",
+                    'date': c['data_hora'].strftime('%d/%m/%Y %H:%M')
+                })
+
+        elif user_type == 'clinica':
+            data['user_type_display'] = 'Clínica Veterinária'
+            cursor.execute('SELECT data_cadastro FROM clinicas WHERE clinica_id = %s', (user_id,))
+            res = cursor.fetchone()
+            if res and res['data_cadastro']:
+                data['user_since'] = res['data_cadastro'].strftime('%d/%m/%Y')
+
+            # Agendamentos da clínica
+            cursor.execute('SELECT COUNT(*) as count FROM agendamentos WHERE clinica_id = %s AND status = "agendado"', (user_id,))
+            data['agendamentos_count'] = cursor.fetchone()['count']
+
+            # Médicos associados (Via tabela medicos_clinicas)
+            cursor.execute('SELECT COUNT(*) as count FROM medicos_clinicas WHERE clinica_id = %s', (user_id,))
+            medicos = cursor.fetchone()
+            data['medicos_count'] = medicos['count'] if medicos else 0
+
+    except Exception as e:
+        print(f"Erro dashboard: {e}")
     finally:
         cursor.close()
         conn.close()
     
-    return redirect(url_for('dashboard'))
+    return render_template('pages/dashboard.html', **data)
 
-@app.route('/atualizar-medico', methods=['POST'])
-def atualizar_medico():
-    # Verificar se o usuário está logado e é um médico
-    if 'user_id' not in session or session['user_type'] != 'medico':
-        flash('Acesso não autorizado')
+# --- CADASTROS ---
+
+@app.route('/submit-tutor', methods=['POST'])
+def submit_tutor():
+    try:
+        nome = request.form['full-name']
+        email = request.form['email']
+        senha = request.form['password']
+        # Campos opcionais para endereço
+        endereco = request.form.get('address')
+        cep = request.form.get('cep')
+        telefone = request.form.get('phone')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Verificar email duplicado
+        cursor.execute('SELECT 1 FROM tutores WHERE email = %s', (email,))
+        if cursor.fetchone():
+            flash('Email já cadastrado')
+            return redirect(url_for('cadastro_tutor_new_page'))
+
+        # Lógica de Endereço (se fornecido)
+        endereco_id = None
+        if endereco:
+            cursor.execute(
+                'INSERT INTO endereco (endereco, cep, telefone) VALUES (%s, %s, %s)',
+                (endereco, cep, telefone)
+            )
+            endereco_id = cursor.lastrowid
+        
+        senha_hash = generate_password_hash(senha)
+        
+        # Inserir Tutor
+        cursor.execute(
+            'INSERT INTO tutores (nome_tutores, email, senha, endereco_id, data_cadastro) VALUES (%s, %s, %s, %s, NOW())',
+            (nome, email, senha_hash, endereco_id)
+        )
+        conn.commit()
+        flash('Cadastro realizado com sucesso!')
         return redirect(url_for('login_page'))
     
-    user_id = session['user_id']
-    
-    # Obter dados do formulário
-    nome = request.form['nome']
-    email = request.form['email']
-    crmv = request.form['crmv']
-    uf = request.form['uf']
-    especialidades = request.form.get('especialidades', '')
-    descricao = request.form.get('descricao', '')
-    foto = request.form.get('foto', '')
-    senha_atual = request.form.get('senha_atual')
-    nova_senha = request.form.get('nova_senha')
-    confirmar_senha = request.form.get('confirmar_senha')
-    
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    # Verificar se o email já existe (exceto para o próprio usuário)
-    cursor.execute('SELECT * FROM medicos WHERE email = %s AND medico_id != %s', (email, user_id))
-    existing_user = cursor.fetchone()
-    if existing_user:
-        cursor.close()
-        conn.close()
-        flash('Email já cadastrado por outro usuário')
-        return redirect(url_for('editar_perfil_page'))
-    
-    # Obter dados atuais do usuário
-    cursor.execute('SELECT * FROM medicos WHERE medico_id = %s', (user_id,))
-    medico = cursor.fetchone()
-    
-    # Verificar senha atual se fornecida
-    if senha_atual:
-        if not check_password_hash(medico['senha'], senha_atual):
-            cursor.close()
-            conn.close()
-            flash('Senha atual incorreta')
-            return redirect(url_for('editar_perfil_page'))
-        
-        # Atualizar senha se nova senha fornecida
-        if nova_senha:
-            if nova_senha != confirmar_senha:
-                cursor.close()
-                conn.close()
-                flash('Nova senha e confirmação não coincidem')
-                return redirect(url_for('editar_perfil_page'))
-            
-            # Atualizar com nova senha
-            cursor.execute(
-                'UPDATE medicos SET nome_medico = %s, email = %s, crmv = %s, uf = %s, especialidades = %s, descricao = %s, foto = %s, senha = %s WHERE medico_id = %s',
-                (nome, email, crmv, uf, especialidades, descricao, foto, generate_password_hash(nova_senha), user_id)
-            )
-        else:
-            # Atualizar sem mudar a senha
-            cursor.execute(
-                'UPDATE medicos SET nome_medico = %s, email = %s, crmv = %s, uf = %s, especialidades = %s, descricao = %s, foto = %s WHERE medico_id = %s',
-                (nome, email, crmv, uf, especialidades, descricao, foto, user_id)
-            )
-    else:
-        # Não permitir atualização sem senha atual
-        cursor.close()
-        conn.close()
-        flash('Senha atual é necessária para fazer alterações')
-        return redirect(url_for('editar_perfil_page'))
-    
-    conn.commit()
-    cursor.close()
-    conn.close()
-    
-    # Atualizar o nome na sessão
-    session['user_name'] = nome
-    
-    flash('Perfil atualizado com sucesso!')
-    return redirect(url_for('dashboard'))
+    except Exception as e:
+        if conn: conn.rollback()
+        flash(f'Erro: {str(e)}')
+        return redirect(url_for('cadastro_tutor_new_page'))
+    finally:
+        if conn: conn.close()
 
-@app.route('/atualizar-clinica', methods=['POST'])
-def atualizar_clinica():
-    # Verificar se o usuário está logado e é uma clínica
-    if 'user_id' not in session or session['user_type'] != 'clinica':
-        flash('Acesso não autorizado')
+@app.route('/submit-estabelecimento', methods=['POST'])
+def submit_clinica():
+    try:
+        razao = request.form['full-name']
+        email = request.form['email']
+        senha = request.form['password']
+        cep = request.form.get('cep')
+        uf = request.form.get('state')
+        cidade = request.form.get('city')
+        telefone = request.form.get('phone')
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT 1 FROM clinicas WHERE email = %s', (email,))
+        if cursor.fetchone():
+            flash('Email já cadastrado')
+            return redirect(url_for('cadastro_clinica_page'))
+            
+        senha_hash = generate_password_hash(senha)
+        
+        cursor.execute(
+            'INSERT INTO clinicas (razao_social, email, senha, cep, uf, cidade, telefone, data_cadastro) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())',
+            (razao, email, senha_hash, cep, uf, cidade, telefone)
+        )
+        conn.commit()
+        flash('Clínica cadastrada!')
         return redirect(url_for('login_page'))
-    
-    user_id = session['user_id']
-    
-    # Obter dados do formulário
-    razao_social = request.form['razao_social']
-    email = request.form['email']
-    cep = request.form['cep']
-    uf = request.form['uf']
-    cidade = request.form['cidade']
-    bairro = request.form['bairro']
-    rua = request.form['rua']
-    numero = request.form['numero']
-    complemento = request.form.get('complemento', '')
-    telefone = request.form.get('telefone', '')
-    horario_funcionamento = request.form.get('horario_funcionamento', '')
-    senha_atual = request.form.get('senha_atual')
-    nova_senha = request.form.get('nova_senha')
-    confirmar_senha = request.form.get('confirmar_senha')
-    
+    except Exception as e:
+        flash(f'Erro: {e}')
+        return redirect(url_for('cadastro_clinica_page'))
+    finally:
+        if conn: conn.close()
+
+# Rota para página de cadastro de médico (pode ser acessada pelo dashboard da clínica)
+@app.route('/pages/cadastro-veterinario.html')
+def cadastro_veterinario_page():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    
-    # Verificar se o email já existe (exceto para o próprio usuário)
-    cursor.execute('SELECT * FROM clinicas WHERE email = %s AND clinica_id != %s', (email, user_id))
-    existing_user = cursor.fetchone()
-    if existing_user:
-        cursor.close()
-        conn.close()
-        flash('Email já cadastrado por outro usuário')
-        return redirect(url_for('editar_perfil_page'))
-    
-    # Obter dados atuais do usuário
-    cursor.execute('SELECT * FROM clinicas WHERE clinica_id = %s', (user_id,))
-    clinica = cursor.fetchone()
-    
-    # Verificar senha atual se fornecida
-    if senha_atual:
-        if not check_password_hash(clinica['senha'], senha_atual):
-            cursor.close()
-            conn.close()
-            flash('Senha atual incorreta')
-            return redirect(url_for('editar_perfil_page'))
-        
-        # Atualizar senha se nova senha fornecida
-        if nova_senha:
-            if nova_senha != confirmar_senha:
-                cursor.close()
-                conn.close()
-                flash('Nova senha e confirmação não coincidem')
-                return redirect(url_for('editar_perfil_page'))
-            
-            # Atualizar com nova senha
-            cursor.execute(
-                'UPDATE clinicas SET razao_social = %s, email = %s, cep = %s, uf = %s, cidade = %s, bairro = %s, rua = %s, numero = %s, complemento = %s, telefone = %s, horario_funcionamento = %s, senha = %s WHERE clinica_id = %s',
-                (razao_social, email, cep, uf, cidade, bairro, rua, numero, complemento, telefone, horario_funcionamento, generate_password_hash(nova_senha), user_id)
-            )
-        else:
-            # Atualizar sem mudar a senha
-            cursor.execute(
-                'UPDATE clinicas SET razao_social = %s, email = %s, cep = %s, uf = %s, cidade = %s, bairro = %s, rua = %s, numero = %s, complemento = %s, telefone = %s, horario_funcionamento = %s WHERE clinica_id = %s',
-                (razao_social, email, cep, uf, cidade, bairro, rua, numero, complemento, telefone, horario_funcionamento, user_id)
-            )
-    else:
-        # Não permitir atualização sem senha atual
-        cursor.close()
-        conn.close()
-        flash('Senha atual é necessária para fazer alterações')
-        return redirect(url_for('editar_perfil_page'))
-    
-    conn.commit()
-    cursor.close()
-    conn.close()
-    
-    # Atualizar o nome na sessão
-    session['user_name'] = razao_social
-    
-    flash('Perfil atualizado com sucesso!')
-    return redirect(url_for('dashboard'))
-
-
-
-
-@app.route('/api/veterinarios')
-def api_veterinarios():
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute('SELECT * FROM medicos')
-    medicos = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return jsonify(medicos)
-
-@app.route('/api/clinicas')
-def api_clinicas():
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute('SELECT * FROM clinicas')
+    cursor.execute('SELECT clinica_id, razao_social FROM clinicas')
     clinicas = cursor.fetchall()
     cursor.close()
     conn.close()
-    return jsonify(clinicas)
+    return render_template('pages/cadastro-veterinario.html', clinicas=clinicas)
 
-# Rota para página de cadastro de veterinários
-@app.route('/cadastro-veterinario')
-def cadastro_veterinario_page():
-    return render_template('pages/cadastro-veterinario.html')
+@app.route('/cadastrar-veterinario', methods=['POST'])
+def cadastrar_veterinario():
+    conn = None
+    try:
+        nome = request.form['nome']
+        email = request.form['email']
+        senha = request.form['senha']
+        crmv = request.form['crmv']
+        uf = request.form.get('uf_crmv')
+        clinica_id = request.form.get('clinica_id')
+        especialidades = request.form.getlist('especialidades[]')
+        descricao = request.form.get('descricao', '')
+        
+        especialidades_str = ','.join(especialidades)
+        senha_hash = generate_password_hash(senha)
+        
+        # Upload Foto
+        foto = None
+        if 'foto' in request.files:
+            f = request.files['foto']
+            if f and allowed_file(f.filename):
+                foto = secure_filename(f"med_{uuid.uuid4().hex}.{f.filename.rsplit('.',1)[1]}")
+                f.save(os.path.join('static/uploads/medicos', foto))
 
-# Rota para processar cadastro de veterinário
-@app.route('/submit-veterinario', methods=['POST'])
-def submit_veterinario():
-    # Coletar dados do formulário
-    nome = request.form['nome']
-    email = request.form['email']
-    cpf = request.form['cpf']
-    crmv = request.form['crmv']
-    uf = request.form['uf']
-    telefone = request.form['telefone']
-    data_nascimento = request.form['data_nascimento']
-    senha = request.form['senha']
-    especialidades = request.form.getlist('especialidades[]')
-    descricao = request.form.get('descricao', '')
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Verifica email na tabela medicos
+        cursor.execute('SELECT 1 FROM medicos WHERE email = %s', (email,))
+        if cursor.fetchone(): 
+            return jsonify({'success': False, 'message': 'Email já cadastrado'})
+
+        # Inserir na tabela MEDICOS
+        cursor.execute(
+            'INSERT INTO medicos (nome_medico, email, senha, crmv, uf, especialidades, descricao, foto, data_cadastro) '
+            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())',
+            (nome, email, senha_hash, crmv, uf, especialidades_str, descricao, foto)
+        )
+        medico_id = cursor.lastrowid
+        
+        # Vincular à Clínica na tabela MEDICOS_CLINICAS
+        if clinica_id:
+            cursor.execute(
+                'INSERT INTO medicos_clinicas (medico_id, clinica_id, data_cadastro) VALUES (%s, %s, NOW())',
+                (medico_id, clinica_id)
+            )
+        
+        conn.commit()
+        return jsonify({'success': True, 'message': 'Médico cadastrado com sucesso!', 'redirect': url_for('login_page')})
+
+    except Exception as e:
+        if conn: conn.rollback()
+        return jsonify({'success': False, 'message': f'Erro: {str(e)}'})
+    finally:
+        if conn: conn.close()
+
+# --- GESTÃO DE PETS ---
+
+@app.route('/gerenciar-pets')
+@login_required
+def gerenciar_pets():
+    if session['user_type'] != 'tutor':
+        flash('Acesso restrito a tutores')
+        return redirect(url_for('dashboard'))
     
-    # Processar upload de documentos
-    documentos = []
-    if 'documentos' in request.files:
-        files = request.files.getlist('documentos')
-        for file in files:
-            if file and allowed_file(file.filename):
-                filename = secure_filename(f"{uuid.uuid4().hex}_{file.filename}")
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                documentos.append(filename)
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute('SELECT * FROM pets WHERE tutor_id = %s', (session['user_id'],))
+    pets = cursor.fetchall()
+    conn.close()
+    return render_template('pages/gerenciar-pets.html', pets=pets)
+
+@app.route('/adicionar-pet', methods=['POST'])
+@login_required
+def adicionar_pet():
+    if session['user_type'] != 'tutor':
+        return jsonify({'success': False}), 403
     
-    # Processar upload de foto de perfil
+    try:
+        tutor_id = session['user_id']
+        nome = request.form['nome_pet']
+        especie = request.form['especie']
+        raca = request.form.get('raca', '')
+        nasc = request.form.get('data_nascimento')
+        sexo = request.form.get('sexo', '')
+        peso = request.form.get('peso')
+
+        foto = None
+        if 'foto' in request.files:
+            f = request.files['foto']
+            if f and allowed_file(f.filename):
+                foto = secure_filename(f"pet_{uuid.uuid4().hex}.{f.filename.rsplit('.',1)[1]}")
+                f.save(os.path.join(app.config['UPLOAD_FOLDER'], foto))
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            'INSERT INTO pets (nome_pet, especie, raca, data_nascimento, sexo, peso, tutor_id, foto, data_cadastro) '
+            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())',
+            (nome, especie, raca, nasc, sexo, peso, tutor_id, foto)
+        )
+        conn.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+    finally:
+        if 'conn' in locals(): conn.close()
+
+@app.route('/atualizar-pet', methods=['POST'])
+@login_required
+def atualizar_pet():
+    pet_id = request.form['pet_id']
+    nome = request.form['nome_pet']
+    # Recuperar outros campos...
+    especie = request.form['especie']
+    raca = request.form.get('raca')
+    nasc = request.form.get('data_nascimento')
+    sexo = request.form.get('sexo')
+    peso = request.form.get('peso')
+    
     foto = None
     if 'foto' in request.files:
-        file = request.files['foto']
-        if file and allowed_file(file.filename):
-            filename = secure_filename(f"{uuid.uuid4().hex}_{file.filename}")
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            foto = filename
+        f = request.files['foto']
+        if f and allowed_file(f.filename):
+            foto = secure_filename(f"pet_{uuid.uuid4().hex}.{f.filename.rsplit('.',1)[1]}")
+            f.save(os.path.join(app.config['UPLOAD_FOLDER'], foto))
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # Verifica dono
+        cursor.execute('SELECT tutor_id, foto FROM pets WHERE pet_id = %s', (pet_id,))
+        pet = cursor.fetchone()
+        
+        if not pet or pet['tutor_id'] != session['user_id']:
+            return jsonify({'success': False, 'message': 'Permissão negada'}), 403
+        
+        if not foto: foto = pet['foto']
+        
+        cursor.execute(
+            'UPDATE pets SET nome_pet=%s, especie=%s, raca=%s, data_nascimento=%s, sexo=%s, peso=%s, foto=%s WHERE pet_id=%s',
+            (nome, especie, raca, nasc, sexo, peso, foto, pet_id)
+        )
+        conn.commit()
+        return jsonify({'success': True})
+    finally:
+        conn.close()
+
+# --- AGENDAMENTOS ---
+
+@app.route('/agendar-consulta')
+@app.route('/pages/agendar-consulta.html')
+@login_required
+def agendar_consulta_page():
+    if session['user_type'] != 'tutor':
+        flash('Faça login como tutor')
+        return redirect(url_for('login_page'))
     
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
+    cursor.execute('SELECT * FROM pets WHERE tutor_id = %s', (session['user_id'],))
+    pets = cursor.fetchall()
+    
+    cursor.execute('SELECT * FROM clinicas')
+    clinicas = cursor.fetchall()
+    
+    horas = [f"{h:02d}:{m:02d}" for h in range(8, 19) for m in [0, 30] if not (h==18 and m==30)]
+    hoje = datetime.datetime.now().strftime('%Y-%m-%d')
+    
+    cursor.close()
+    conn.close()
+    
+    return render_template('pages/agendar-consulta.html', pets=pets, clinicas=clinicas, horas_disponiveis=horas, hoje=hoje)
+
+@app.route('/get-profissionais-da-clinica/<int:clinica_id>')
+def get_profissionais_da_clinica(clinica_id):
+    if 'user_id' not in session: return jsonify([]), 401
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # JOIN para pegar médicos vinculados à clínica via tabela medicos_clinicas
+    cursor.execute('''
+        SELECT m.medico_id as profissional_id, m.nome_medico as nome_profissional
+        FROM medicos m
+        JOIN medicos_clinicas mc ON m.medico_id = mc.medico_id
+        WHERE mc.clinica_id = %s
+    ''', (clinica_id,))
+    
+    medicos = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    return jsonify(medicos)
+
+@app.route('/salvar-agendamento', methods=['POST'])
+@login_required
+def salvar_agendamento():
     try:
-        # Verificar se o email já existe
-        cursor.execute('SELECT * FROM medicos WHERE email = %s', (email,))
-        existing_user = cursor.fetchone()
-        if existing_user:
-            return jsonify({'success': False, 'message': 'Email já cadastrado'}), 400
+        pet_id = request.form.get('pet_id')
+        clinica_id = request.form.get('clinica_id')
+        medico_id = request.form.get('profissional_id') or None # Pode ser nulo
+        data = request.form.get('data_consulta')
+        hora = request.form.get('hora_consulta')
+        obs = request.form.get('observacoes', '')
         
-        # Verificar se o CRMV já existe
-        cursor.execute('SELECT * FROM medicos WHERE crmv = %s', (crmv,))
-        existing_crmv = cursor.fetchone()
-        if existing_crmv:
-            return jsonify({'success': False, 'message': 'CRMV já cadastrado'}), 400
+        # Validar data futura
+        data_hora_str = f"{data} {hora}"
+        dt = datetime.datetime.strptime(data_hora_str, "%Y-%m-%d %H:%M")
+        if dt <= datetime.datetime.now():
+            return jsonify({'success': False, 'message': 'Data deve ser futura'})
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
         
-        # Inserir veterinário no banco de dados
-        data_cadastro = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        senha_hash = generate_password_hash(senha)
-        especialidades_str = ','.join(especialidades) if especialidades else ''
-        documentos_str = ','.join(documentos) if documentos else ''
-        
+        # Validar disponibilidade na tabela AGENDAMENTOS
         cursor.execute(
-            'INSERT INTO medicos (nome_medico, email, cpf, crmv, uf, telefone, data_nascimento, senha, especialidades, descricao, foto, documentos, data_cadastro, status) '
-            'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
-            (nome, email, cpf, crmv, uf, telefone, data_nascimento, senha_hash, especialidades_str, descricao, foto, documentos_str, data_cadastro, 'pendente')
+            "SELECT 1 FROM agendamentos WHERE clinica_id=%s AND data_hora=%s AND status != 'cancelado'", 
+            (clinica_id, data_hora_str)
         )
-        
-        medico_id = cursor.lastrowid
+        if cursor.fetchone():
+             return jsonify({'success': False, 'message': 'Horário indisponível'})
+
+        # Inserir
+        cursor.execute(
+            'INSERT INTO agendamentos (pet_id, clinica_id, medico_id, data_hora, observacoes, status, data_cadastro) '
+            'VALUES (%s, %s, %s, %s, %s, "agendado", NOW())',
+            (pet_id, clinica_id, medico_id, data_hora_str, obs)
+        )
         conn.commit()
-        
-        return jsonify({
-            'success': True, 
-            'message': 'Cadastro realizado com sucesso! Seu perfil será analisado e ativado em breve.',
-            'medico_id': medico_id
-        })
-        
-    except mysql.connector.Error as err:
-        conn.rollback()
-        return jsonify({'success': False, 'message': f'Erro ao cadastrar: {str(err)}'}), 500
+        return jsonify({'success': True, 'message': 'Agendamento realizado!'})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
     finally:
-        cursor.close()
-        conn.close()
+        if 'conn' in locals(): conn.close()
 
 if __name__ == '__main__':
- app.run(debug=True)
+    app.run(debug=True)
